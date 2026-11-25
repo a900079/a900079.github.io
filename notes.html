@@ -74,7 +74,7 @@ nav a.done::after{content:" ✓";color:var(--ok)}
 <header>
   <a href="index.html">← 返回学习地图</a>
   <h1>大模型学习笔记</h1>
-  <p class="sub">从零开始的系统笔记，按学习顺序一章一章写。当前进度：学习路线 + 入门视频 + 第 1、2、5、6 章（第 3、4 章待补）。</p>
+  <p class="sub">从零开始的系统笔记，按学习顺序一章一章写。当前进度：学习路线 + 入门视频 + 第 1、2、3、5、6 章（第 4 章待补）。</p>
   <div class="prog">
     <span id="progTxt">学习进度</span>
     <div class="bar"><i id="progBar"></i></div>
@@ -114,6 +114,21 @@ nav a.done::after{content:" ✓";color:var(--ok)}
   <a href="#c2-10">2.10 动手练习</a>
   <a href="#c2-11">2.11 自测题</a>
   <a href="#c2-12">2.12 延伸阅读</a>
+  <div class="h">第 3 章 深度学习基础</div>
+  <a href="#c3-1">3.1 要学到什么程度</a>
+  <a href="#c3-2">3.2 Python 速成</a>
+  <a href="#c3-3">3.3 张量</a>
+  <a href="#c3-4">3.4 机器学习的本质</a>
+  <a href="#c3-5">3.5 神经网络</a>
+  <a href="#c3-6">3.6 损失函数</a>
+  <a href="#c3-7">3.7 梯度下降与反向传播</a>
+  <a href="#c3-8">3.8 动手：手写梯度下降</a>
+  <a href="#c3-9">3.9 动手：迷你语言模型</a>
+  <a href="#c3-10">3.10 过拟合与欠拟合</a>
+  <a href="#c3-11">3.11 GPU 与算力</a>
+  <a href="#c3-12">3.12 动手练习</a>
+  <a href="#c3-13">3.13 自测题</a>
+  <a href="#c3-14">3.14 延伸阅读</a>
   <div class="h">第 5 章 RAG</div>
   <a href="#c5-1">5.1 为什么需要 RAG</a>
   <a href="#c5-2">5.2 完整流程</a>
@@ -511,7 +526,246 @@ print(ticket.类别, ticket.紧急程度, ticket.摘要)</code></pre>
   <li><a href="https://www.yuque.com/aaron-wecc3/dhluml/xvr7mk4f0mv5xt2i" target="_blank" rel="noopener">102.Prompting相关面试题</a></li>
   <li><a href="https://www.yuque.com/aaron-wecc3/dhluml/pg5y7wrb3u3hm5aa" target="_blank" rel="noopener">214.借助大模型API自动处理任务</a></li>
 </ul>
-<div class="card"><b>接下来：</b>按应用路线，先跳到第 5 章 RAG。第 3 章（Python 与深度学习基础）和第 4 章（Transformer 原理）之后补上，不影响学 RAG。</div>
+<div class="card"><b>接下来：</b>第 3 章打深度学习基础。走应用路线也可以先跳到第 5 章 RAG，回头再补第 3、4 章。</div>
+
+<h2 id="c3-1">第 3 章 Python 与深度学习基础</h2>
+<p>前两章是「用」模型，这一章开始理解模型是怎么「学」出来的。你不需要推导公式，但要弄懂几个核心概念：模型、损失函数、梯度下降。后面的 Transformer、微调、显存优化都建立在这些概念上，面试也常问。学完这一章，你会亲手训练一个迷你「语言模型」，它和 GPT 的原理一样，只是小了几十万倍以上。</p>
+
+<h3>3.1 要学到什么程度</h3>
+<div class="tw"><table>
+  <tr><th>方向</th><th>需要掌握</th><th>可以先跳过</th></tr>
+  <tr><td><b>应用开发</b></td><td>Python 熟练；理解模型、损失、梯度下降、过拟合这些概念；能看懂简单的 PyTorch 代码</td><td>数学推导、手写反向传播、调参经验</td></tr>
+  <tr><td><b>算法 / 微调</b></td><td>以上全部，再加上 PyTorch 熟练、线性代数和概率基础、训练调参经验</td><td>—</td></tr>
+</table></div>
+<p>你是走应用路线，这一章读懂概念、把两个例子跑通就够了，数学部分看懂直觉就行。</p>
+
+<h3 id="c3-2">3.2 写给 Java 工程师的 Python 速成</h3>
+<p>Python 是大模型领域的通用语言：模型训练、数据处理、各家 SDK 都优先支持它。有 Java 基础的话，一两周就能上手。主要差别：</p>
+<div class="tw"><table>
+  <tr><th>Java</th><th>Python</th><th>说明</th></tr>
+  <tr><td><code>int x = 1;</code></td><td><code>x = 1</code></td><td>动态类型，不用声明。可以加类型标注 <code>x: int = 1</code>，只是提示，不强制</td></tr>
+  <tr><td>大括号 <code>{ }</code></td><td>缩进</td><td>缩进就是语法，必须对齐（一般 4 个空格）</td></tr>
+  <tr><td><code>ArrayList</code> / <code>HashMap</code></td><td><code>list</code> / <code>dict</code></td><td>内置字面量：<code>[1, 2]</code>、<code>{"a": 1}</code></td></tr>
+  <tr><td>Stream API</td><td>列表推导式</td><td><code>[x * 2 for x in nums if x &gt; 0]</code></td></tr>
+  <tr><td><code>String.format</code></td><td>f-string</td><td><code>f"损失 {loss:.3f}"</code></td></tr>
+  <tr><td>Maven / Gradle</td><td>pip + 虚拟环境</td><td>每个项目一个独立环境，避免依赖冲突</td></tr>
+  <tr><td>JUnit</td><td>pytest</td><td>—</td></tr>
+</table></div>
+<p>每个项目建一个虚拟环境，这是最重要的好习惯（Windows PowerShell）：</p>
+<pre><code>python -m venv .venv
+.venv\Scripts\Activate.ps1
+pip install numpy torch</code></pre>
+<p class="meta">做实验推荐用 Jupyter Notebook 或 VS Code 的 Notebook 模式，代码可以一段一段运行，随时看中间结果，比每次运行整个脚本方便得多。</p>
+
+<h3 id="c3-3">3.3 张量：深度学习的数据结构</h3>
+<p>深度学习里所有数据都是<b>张量（Tensor）</b>，也就是多维数组：</p>
+<div class="tw"><table>
+  <tr><th>维度</th><th>叫法</th><th>例子</th><th>形状（shape）</th></tr>
+  <tr><td>0 维</td><td>标量</td><td>一个损失值</td><td><code>()</code></td></tr>
+  <tr><td>1 维</td><td>向量</td><td>一个字的 Embedding</td><td><code>(512,)</code></td></tr>
+  <tr><td>2 维</td><td>矩阵</td><td>一句话：10 个字，每个字 512 维</td><td><code>(10, 512)</code></td></tr>
+  <tr><td>3 维</td><td>—</td><td>一批句子：32 句 × 10 个字 × 512 维</td><td><code>(32, 10, 512)</code></td></tr>
+</table></div>
+<p>神经网络的计算主要就是对张量做矩阵乘法。写深度学习代码时 80% 的报错都是形状对不上，所以<b>养成随时打印 <code>.shape</code> 的习惯</b>。NumPy 是 CPU 上的数组库，PyTorch 的张量用法和它几乎一样，但能放到 GPU 上算，还能自动求梯度。</p>
+
+<h3 id="c3-4">3.4 机器学习的本质</h3>
+<div class="key"><b>机器学习 = 用数据自动调整一个函数的参数，让它的输出越来越接近正确答案。</b></div>
+<p>传统编程是你写规则：「包含『退款』二字就归为售后」。机器学习是你给例子：一万条已经分好类的留言，让模型自己从数据里找规律。训练要三样东西：</p>
+<div class="tw"><table>
+  <tr><th>要素</th><th>作用</th><th>大模型里对应什么</th></tr>
+  <tr><td><b>模型</b></td><td>一个带大量参数的函数，输入数据、输出预测</td><td>Transformer 网络，几十亿个参数</td></tr>
+  <tr><td><b>损失函数</b></td><td>衡量预测和正确答案差多远，越小越好</td><td>交叉熵：预测下一个 token 预测得有多差</td></tr>
+  <tr><td><b>优化器</b></td><td>根据损失调整参数，让损失变小</td><td>AdamW</td></tr>
+</table></div>
+<p><b>三种学习方式：</b></p>
+<ul>
+  <li><b>有监督学习：</b>数据带标签（这条留言属于「物流」），最常见。SFT 就属于这一类。</li>
+  <li><b>无监督学习：</b>没有标签，自己找结构，比如聚类。</li>
+  <li><b>自监督学习：</b>从数据本身造出标签。大模型预训练正是这样：拿一句话，把下一个字当成「标签」去预测，所以不需要人工标注，海量网页文本都能拿来训练。</li>
+</ul>
+
+<h3 id="c3-5">3.5 神经网络</h3>
+<p>神经网络由很多「神经元」组成。一个神经元做的事很简单：<b>把输入乘以权重再相加，加上偏置，然后通过一个激活函数</b>。</p>
+<div class="key">输出 = 激活函数( w₁x₁ + w₂x₂ + … + b )<br>其中 w（权重）和 b（偏置）就是要学习的<b>参数</b>。第 1 章说的「7B 参数」，就是有 70 亿个这样的数字。</div>
+<p>很多神经元排成一<b>层</b>，很多层叠起来就是<b>深度</b>神经网络。前面的层学简单的特征，后面的层组合出复杂的特征。</p>
+<p><b>为什么需要激活函数？</b>如果没有它，不管叠多少层，整个网络都等价于一次矩阵乘法，只能表示直线关系。激活函数加入了「非线性」，网络才能拟合复杂的规律。常见的有 ReLU（负数变 0，正数不变）、GELU，大模型里常用 SwiGLU。</p>
+<p class="meta">理论上，只要神经元足够多，神经网络可以逼近任意函数。这也是「堆规模」能让大模型变强的原因之一。</p>
+
+<h3 id="c3-6">3.6 损失函数</h3>
+<div class="tw"><table>
+  <tr><th>任务</th><th>常用损失</th><th>直觉</th></tr>
+  <tr><td>回归（预测一个数，比如房价）</td><td>均方误差 MSE</td><td>预测值和真实值差值的平方，取平均</td></tr>
+  <tr><td>分类（从几个类别里选）</td><td>交叉熵 Cross-Entropy</td><td>模型给正确答案的概率越高，损失越小</td></tr>
+</table></div>
+<p><b>大模型预训练用的就是交叉熵。</b>词表里可能有十几万个 token，每一步模型都给出一个概率分布（第 1 章讲过）。如果正确的下一个字是「京」，模型给「京」的概率是 0.9，损失就小；只给了 0.01，损失就大。整个预训练就是在几万亿个 token 上不断降低这个损失。</p>
+<p class="meta">常见的评测指标<b>困惑度（Perplexity）</b>就是交叉熵损失取指数。直觉上可以理解为「模型平均在几个候选里犹豫」，越低越好。</p>
+
+<h3 id="c3-7">3.7 梯度下降与反向传播</h3>
+<p>怎么调参数让损失变小？想象你蒙着眼站在山坡上，要走到谷底：用脚感受哪个方向往下最陡，朝那个方向迈一小步，重复。</p>
+<ul>
+  <li><b>梯度：</b>损失对每个参数的变化率，告诉你每个参数往哪个方向调、损失下降得最快。</li>
+  <li><b>学习率：</b>每一步迈多大。太大会在谷底来回震荡甚至发散；太小走得太慢。这是最重要的超参数之一。</li>
+  <li><b>反向传播：</b>网络有几十亿个参数，怎么算出每个参数的梯度？反向传播用链式法则，从损失开始一层层往回算，一次就能算出全部梯度。PyTorch 里一行 <code>loss.backward()</code> 就自动完成。</li>
+</ul>
+<p><b>训练的几个基本单位：</b></p>
+<div class="tw"><table>
+  <tr><th>术语</th><th>含义</th></tr>
+  <tr><td>Batch（批）</td><td>每次拿一小批数据（比如 32 条）算损失和梯度，而不是一次用全部数据</td></tr>
+  <tr><td>Step（步）</td><td>用一个 batch 更新一次参数</td></tr>
+  <tr><td>Epoch（轮）</td><td>把整个训练集完整过一遍</td></tr>
+</table></div>
+<p><b>优化器：</b>最基础的是 SGD（随机梯度下降），按梯度直接更新。现在主流用 <b>Adam / AdamW</b>：它会给每个参数自动调整步长，训练更稳定。AdamW 在 Adam 的基础上改进了权重衰减，大模型训练基本都用它。</p>
+<div class="key"><b>每一步训练都是同样的四个动作：</b>前向计算得到预测 → 算损失 → 反向传播求梯度 → 优化器更新参数。记住这个循环，看任何训练代码都能找到这四步。</div>
+
+<h3 id="c3-8">3.8 动手 1：用 NumPy 手写梯度下降</h3>
+<p>最简单的模型：一条直线 <code>y = w·x + b</code>。我们用带噪声的数据（真实规律是 y = 2x + 1），让程序自己学出 w 和 b。这里梯度是手算的，帮你看清楚每一步在做什么。</p>
+<pre><code>import numpy as np
+
+<span class="c"># 造数据：真实规律是 y = 2x + 1，再加一点噪声</span>
+rng = np.random.default_rng(0)
+x = rng.uniform(-1, 1, 100)
+y = 2 * x + 1 + rng.normal(0, 0.1, 100)
+
+w, b = 0.0, 0.0   <span class="c"># 参数从 0 开始</span>
+lr = 0.1          <span class="c"># 学习率</span>
+
+for step in range(201):
+    pred = w * x + b                    <span class="c"># 1. 前向：算预测</span>
+    loss = ((pred - y) ** 2).mean()     <span class="c"># 2. 损失：均方误差</span>
+    dw = (2 * (pred - y) * x).mean()    <span class="c"># 3. 梯度：损失对 w、b 的导数</span>
+    db = (2 * (pred - y)).mean()
+    w -= lr * dw                        <span class="c"># 4. 更新：往梯度反方向走一小步</span>
+    b -= lr * db
+    if step % 40 == 0:
+        print(f"第 {step:3d} 步  损失 {loss:.4f}  w={w:.3f}  b={b:.3f}")</code></pre>
+<p>你会看到损失越来越小，w 和 b 逐渐接近 2 和 1。<b>大模型训练做的是同一件事</b>，只是参数从 2 个变成了几十亿个，梯度由反向传播自动计算。试着把 <code>lr</code> 改成 1.5 或 0.001，看看学习率太大或太小会怎样。</p>
+
+<h3 id="c3-9">3.9 动手 2：用 PyTorch 训练一个迷你语言模型</h3>
+<p>这个例子把前面所有概念串起来：用一小段中文训练一个模型，<b>根据前 4 个字预测下一个字</b>，然后让它自己续写。这正是第 1 章讲的「预测下一个 token」，GPT 也是这样训练的。</p>
+<pre><code>pip install torch</code></pre>
+<p>新建 <code>tiny_lm.py</code>：</p>
+<pre><code>import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+torch.manual_seed(0)
+
+<span class="c"># ---------- 1. 数据：把文字变成数字 ----------</span>
+text = ("大模型是在海量文本上训练出来的神经网络。大模型的核心任务是预测下一个字。"
+        "大模型通过预测下一个字学会了语言和知识。训练大模型需要大量数据和算力。"
+        "神经网络通过梯度下降不断调整参数，让损失越来越小。") * 20
+chars = sorted(set(text))                   <span class="c"># 词表：文本里出现过的所有字</span>
+stoi = {c: i for i, c in enumerate(chars)}  <span class="c"># 字 → 编号</span>
+itos = {i: c for c, i in stoi.items()}      <span class="c"># 编号 → 字</span>
+data = torch.tensor([stoi[c] for c in text])
+
+CONTEXT = 4  <span class="c"># 用前 4 个字预测下一个字</span>
+X = torch.stack([data[i:i + CONTEXT] for i in range(len(data) - CONTEXT)])  <span class="c"># 输入</span>
+Y = data[CONTEXT:]                                                          <span class="c"># 标签：下一个字</span>
+print("词表大小:", len(chars), " 训练样本:", X.shape)
+
+<span class="c"># ---------- 2. 模型：Embedding + 两层神经网络 ----------</span>
+class TinyLM(nn.Module):
+    def __init__(self, vocab_size, dim=32, hidden=128):
+        super().__init__()
+        self.emb = nn.Embedding(vocab_size, dim)  <span class="c"># 每个字一个可学习的向量</span>
+        self.net = nn.Sequential(
+            nn.Linear(CONTEXT * dim, hidden),
+            nn.ReLU(),                            <span class="c"># 激活函数</span>
+            nn.Linear(hidden, vocab_size),        <span class="c"># 输出：词表里每个字的分数</span>
+        )
+
+    def forward(self, x):            <span class="c"># x 的形状: (batch, 4)</span>
+        e = self.emb(x)              <span class="c"># (batch, 4, 32)</span>
+        return self.net(e.flatten(1))  <span class="c"># (batch, 词表大小)</span>
+
+model = TinyLM(len(chars))
+print("参数量:", sum(p.numel() for p in model.parameters()))
+optimizer = torch.optim.AdamW(model.parameters(), lr=1e-2)
+
+<span class="c"># ---------- 3. 训练：前向 → 损失 → 反向传播 → 更新 ----------</span>
+for step in range(1501):
+    idx = torch.randint(0, len(X), (64,))          <span class="c"># 随机取一个 batch</span>
+    logits = model(X[idx])                         <span class="c"># 前向</span>
+    loss = F.cross_entropy(logits, Y[idx])         <span class="c"># 交叉熵损失</span>
+    optimizer.zero_grad()
+    loss.backward()                                <span class="c"># 反向传播</span>
+    optimizer.step()                               <span class="c"># 更新参数</span>
+    if step % 300 == 0:
+        print(f"第 {step:4d} 步  损失 {loss.item():.3f}")
+
+<span class="c"># ---------- 4. 生成：一个字一个字往后续写 ----------</span>
+@torch.no_grad()
+def generate(start, n=40, temperature=0.8):
+    ids = [stoi[c] for c in start]
+    for _ in range(n):
+        x = torch.tensor([ids[-CONTEXT:]])
+        logits = model(x)[0] / temperature         <span class="c"># 温度：越低越保守</span>
+        probs = F.softmax(logits, dim=-1)          <span class="c"># 分数 → 概率分布</span>
+        ids.append(torch.multinomial(probs, 1).item())  <span class="c"># 按概率抽一个字</span>
+    return "".join(itos[i] for i in ids)
+
+print(generate("大模型是"))
+print(generate("神经网络"))</code></pre>
+<p>运行后你会看到：词表 60 个字，模型约 2.6 万个参数；损失从 4 左右快速降到接近 0，最后模型能续写出训练文本里那样的句子。在普通电脑的 CPU 上几秒钟就能跑完。</p>
+<p><b>它和 GPT 有什么一样、有什么不一样？</b></p>
+<div class="tw"><table>
+  <tr><th></th><th>这个迷你模型</th><th>GPT 类大模型</th></tr>
+  <tr><td>任务</td><td colspan="2">一样：预测下一个 token，用交叉熵训练，按概率采样生成</td></tr>
+  <tr><td>Embedding</td><td colspan="2">一样：每个 token 对应一个可学习的向量</td></tr>
+  <tr><td>能看多远</td><td>固定只看前 4 个字</td><td>能看几十万个 token，靠注意力机制决定关注哪些</td></tr>
+  <tr><td>网络结构</td><td>两层全连接</td><td>几十到上百层 Transformer</td></tr>
+  <tr><td>规模</td><td>约 2.6 万个参数，几百字的数据</td><td>几十亿到上万亿参数，数万亿 token 的数据</td></tr>
+</table></div>
+<p>差别主要在两处：<b>怎么利用前文</b>（第 4 章的 Transformer 和注意力机制要解决的问题）和<b>规模</b>。试着改改 <code>CONTEXT</code>、<code>hidden</code>、<code>temperature</code>，看看生成效果怎么变。</p>
+
+<h3 id="c3-10">3.10 过拟合与欠拟合</h3>
+<p>上面的迷你模型基本是在「背」那几句话，换一句它没见过的开头就不行了。这就是<b>过拟合</b>。</p>
+<div class="tw"><table>
+  <tr><th></th><th>表现</th><th>原因</th><th>对策</th></tr>
+  <tr><td><b>欠拟合</b></td><td>训练集上效果就不好</td><td>模型太小、训练不够</td><td>加大模型、多训练几轮、调高学习率</td></tr>
+  <tr><td><b>过拟合</b></td><td>训练集上很好，新数据上很差</td><td>模型把训练数据背下来了，没学到通用规律</td><td>增加数据、Dropout、权重衰减、提前停止</td></tr>
+</table></div>
+<p>判断方法：把数据分成<b>训练集</b>和<b>验证集</b>，只用训练集训练，定期在验证集上测损失。训练损失一直降、验证损失开始上升时，就说明开始过拟合了，这时应该停止训练（Early Stopping）。微调大模型时也要盯这两条曲线，第 7 章会再讲到。</p>
+
+<h3 id="c3-11">3.11 GPU 与算力</h3>
+<p>神经网络的计算几乎全是矩阵乘法，而 GPU 有成千上万个核心，可以同时算大量乘加，比 CPU 快几十到上百倍。NVIDIA 的 <b>CUDA</b> 是让程序调用 GPU 计算的平台，PyTorch 等框架都建立在它上面。</p>
+<ul>
+  <li>PyTorch 里把模型和数据放到 GPU 上只要 <code>.to("cuda")</code>。</li>
+  <li>训练时<b>显存</b>通常比算力更先成为瓶颈：除了模型权重，还要存梯度、优化器状态和中间结果。全参数训练的显存大约是只做推理时的好几倍，第 7 章讲微调时会细算。</li>
+  <li>自己没有显卡也能学：Google Colab 有免费 GPU，国内可以按小时租 AutoDL 等平台的 GPU。</li>
+</ul>
+
+<h3 id="c3-12">3.12 动手练习</h3>
+<div class="card">
+<p><b>练习 1：调学习率。</b>在 3.8 的例子里分别用 0.001、0.1、1.0、1.5 四个学习率训练，把损失变化记下来，说说每种情况发生了什么。</p>
+<p><b>练习 2：训练你自己的迷你模型。</b>把 3.9 的 <code>text</code> 换成一篇几千字的文章（比如一本小说的第一章），把 <code>CONTEXT</code> 改成 8，训练后看它能写出什么。再把最后 10% 的文本留作验证集，每 300 步打印一次验证损失，观察过拟合。</p>
+<p><b>练习 3：用上 GPU。</b>在 Google Colab 上运行 3.9 的代码，把模型和数据都 <code>.to("cuda")</code>，把 <code>hidden</code> 调到 1024，对比 CPU 和 GPU 的速度。</p>
+</div>
+
+<h3 id="c3-13">3.13 自测题</h3>
+<details><summary>1. 训练一个模型需要哪三个要素？</summary><p>模型（带参数的函数）、损失函数（衡量预测和正确答案的差距）、优化器（根据梯度更新参数以降低损失）。</p></details>
+<details><summary>2. 大模型预训练为什么不需要人工标注？</summary><p>它是自监督学习：用文本本身的下一个 token 作为标签，任何文本都能自动构造出训练样本。</p></details>
+<details><summary>3. 神经网络为什么需要激活函数？</summary><p>没有激活函数的话，多层线性变换叠加起来仍然只是一个线性变换，网络只能表示线性关系。激活函数引入非线性，网络才能拟合复杂的规律。</p></details>
+<details><summary>4. 大模型预训练用什么损失函数？困惑度和它是什么关系？</summary><p>交叉熵损失，衡量模型给正确的下一个 token 分配的概率有多高。困惑度是交叉熵取指数，越低说明模型预测越准。</p></details>
+<details><summary>5. 每一步训练包含哪四个动作？</summary><p>前向计算得到预测、计算损失、反向传播求梯度、优化器更新参数。</p></details>
+<details><summary>6. 学习率太大或太小会怎样？</summary><p>太大：损失震荡甚至越来越大，无法收敛。太小：收敛很慢，可能训练很久效果还不好。</p></details>
+<details><summary>7. 怎么判断模型过拟合了？有哪些对策？</summary><p>训练损失持续下降但验证损失开始上升。对策：增加数据、数据增强、Dropout、权重衰减、减小模型、提前停止。</p></details>
+<details><summary>8. Batch、Step、Epoch 分别指什么？</summary><p>Batch 是每次参与计算的一小批样本；Step 是用一个 batch 更新一次参数；Epoch 是把整个训练集完整过一遍。</p></details>
+
+<h3 id="c3-14">3.14 延伸阅读</h3>
+<p class="more">视频：入门视频推荐里的 <b>3Blue1Brown 神经网络系列</b>最适合配合本章看。想再深入，可以看 Karpathy 的《Neural Networks: Zero to Hero》系列，从手写反向传播一路讲到 GPT。</p>
+<ul class="more">
+  <li><a href="https://www.yuque.com/aaron-wecc3/dhluml/imgoyhfed449csto" target="_blank" rel="noopener">275.神经网络工作原理深度解析</a></li>
+  <li><a href="https://www.yuque.com/aaron-wecc3/dhluml/bgqducozefyd9us1" target="_blank" rel="noopener">217.深度学习模型工作原理详解</a></li>
+  <li><a href="https://www.yuque.com/aaron-wecc3/dhluml/afagmtefqn64ogol" target="_blank" rel="noopener">151.大模型损失函数面试题</a></li>
+  <li><a href="https://www.yuque.com/aaron-wecc3/dhluml/fxqsgmfl5ignq3kq" target="_blank" rel="noopener">150.大模型激活函数面试题</a></li>
+  <li><a href="https://www.yuque.com/aaron-wecc3/dhluml/nl83bim2b562w4x7" target="_blank" rel="noopener">90.神经网络训练面试题</a></li>
+  <li><a href="https://www.yuque.com/aaron-wecc3/dhluml/nep58qyac0lf4kcg" target="_blank" rel="noopener">27.大模型训练中梯度消失和爆炸的解决方案</a></li>
+  <li><a href="https://www.yuque.com/aaron-wecc3/dhluml/inbvm7k9b2fybag2" target="_blank" rel="noopener">11.什么是过拟合和欠拟合</a></li>
+  <li><a href="https://www.yuque.com/aaron-wecc3/dhluml/pzvo8lz9f0595r00" target="_blank" rel="noopener">259.AI大模型CUDA是什么？</a></li>
+</ul>
+<div class="card"><b>下一章预告：</b>第 4 章 Transformer 原理：注意力机制怎么让模型「看」全文、位置编码、Decoder-only 结构，以及把 3.9 的迷你模型升级成真正的迷你 GPT。</div>
 
 <h2 id="c5-1">第 5 章 RAG：让模型基于你的资料回答</h2>
 <p>RAG（Retrieval-Augmented Generation，检索增强生成）是企业落地大模型用得最多的技术。公司知识库问答、客服机器人、合同助手、内部文档搜索，背后基本都是它。学完这一章，你应该能讲清楚 RAG 的完整流程，并亲手跑通一个最小可用的文档问答程序。</p>
