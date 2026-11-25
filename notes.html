@@ -40,6 +40,8 @@ code{background:var(--chip);padding:1px 6px;border-radius:5px;font-size:.9em}
 .road li::before{counter-increment:s;content:counter(s);position:absolute;left:16px;top:12px;width:28px;height:28px;border-radius:50%;background:var(--ink);color:var(--bg);display:grid;place-items:center;font-size:14px;font-weight:600}
 .road li.now{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
 .road small{color:var(--muted)}
+.road a{color:var(--ink);text-decoration:none}
+.road a:hover b{color:var(--accent);text-decoration:underline}
 .vid{display:grid;gap:10px;margin:12px 0}
 .vid .card{margin:0}
 .vid a{color:var(--accent);font-weight:600;text-decoration:none}
@@ -176,16 +178,18 @@ nav a.done::after{content:" ✓";color:var(--ok)}
 
 <h2 id="road">学习路线</h2>
 <p>大模型方向大致分两条路：<b>应用开发</b>（用现成模型做产品，RAG、Agent、工程化）和<b>算法</b>（训练、微调、模型结构）。你有 Java 后端背景，建议先走应用开发：上手快，也最贴近岗位需求。原理部分边做边补，不用等数学全学完再动手。</p>
+<p class="meta">每个阶段对应同编号的一章：第 1 阶段 = 第 1 章，依此类推。点标题直接跳到那一章。</p>
 <ol class="road">
-  <li class="now"><b>概念入门</b> <small>· 1–2 周</small><br>大模型是什么、怎么训练、能做什么不能做什么。先把吴恩达的入门课看完，再读本页第 1 章。</li>
-  <li><b>提示词工程 + 调用 API</b> <small>· 1–2 周</small><br>学会写好提示词，用 Python 调一次模型 API，理解消息格式、温度、结构化输出。</li>
-  <li><b>Python 与深度学习基础</b> <small>· 2–4 周，可与后面并行</small><br>Python、NumPy、PyTorch 入门，神经网络、损失函数、梯度下降。走应用路线只需要会用，不必推公式。</li>
-  <li><b>Transformer 原理</b> <small>· 2–3 周</small><br>注意力机制、位置编码、Decoder-only 结构。面试必问，也是理解后面所有内容的基础。</li>
-  <li><b>RAG</b> <small>· 2–3 周</small><br>文档切分、Embedding、向量数据库、检索与重排、评测。动手做一个文档问答。</li>
-  <li><b>Agent、MCP 与上下文工程</b> <small>· 2–3 周</small><br>工具调用、ReAct、多 Agent、记忆、MCP 协议。做一个能调用外部工具的 Agent。</li>
-  <li><b>微调与对齐</b> <small>· 3–4 周</small><br>SFT、LoRA/QLoRA、DPO。用 LLaMA Factory 微调一个小模型。</li>
-  <li><b>推理部署与工程化</b> <small>· 持续</small><br>vLLM、量化、显存估算、监控、成本与安全。这一块你的后端经验最用得上。</li>
+  <li class="now"><a href="#c1-1"><b>第 1 章 · 概念入门</b></a> <small>· 1–2 周</small><br>大模型是什么、怎么训练、能做什么不能做什么。先看吴恩达的入门课和 Karpathy 的一小时视频，再读第 1 章。</li>
+  <li><a href="#c2-1"><b>第 2 章 · 提示词工程 + 调用 API</b></a> <small>· 1–2 周</small><br>学会写好提示词，用 Python 调一次模型 API，理解消息格式、结构化输出。</li>
+  <li><a href="#c3-1"><b>第 3 章 · Python 与深度学习基础</b></a> <small>· 2–4 周，可与第 5、6 章穿插学</small><br>Python、NumPy、PyTorch 入门，神经网络、损失函数、梯度下降。走应用路线只需要懂概念、跑通例子，不必推公式。</li>
+  <li><a href="#c4-1"><b>第 4 章 · Transformer 原理</b></a> <small>· 2–3 周，可与第 5、6 章穿插学</small><br>注意力机制、位置编码、Decoder-only 结构。面试必问，面试前一定要补扎实。</li>
+  <li><a href="#c5-1"><b>第 5 章 · RAG</b></a> <small>· 2–3 周</small><br>文档切分、Embedding、向量数据库、检索与重排、评测。动手做一个文档问答。</li>
+  <li><a href="#c6-1"><b>第 6 章 · Agent、MCP 与上下文工程</b></a> <small>· 2–3 周</small><br>工具调用、ReAct、多 Agent、记忆、MCP 协议。做一个能调用外部工具的 Agent。</li>
+  <li><b>第 7 章 · 微调与对齐</b> <small>· 3–4 周 · 待写</small><br>SFT、LoRA/QLoRA、DPO。用 LLaMA Factory 微调一个小模型。</li>
+  <li><b>第 8 章 · 推理部署与工程化</b> <small>· 持续 · 待写</small><br>vLLM、量化、显存估算、监控、成本与安全。这一块你的后端经验最用得上。</li>
 </ol>
+<div class="card"><b>推荐学习顺序（应用路线）：</b>第 1 章 → 第 2 章 → 第 5 章 → 第 6 章，每周再抽几个晚上穿插读第 3、4 章。先用现成模型做出东西，再回头补原理；面试前把第 3、4 章补扎实。</div>
 
 <h2 id="videos">入门视频推荐</h2>
 <p>你听说的吴恩达确实是最合适的起点：讲得慢、讲得清楚、不要求数学基础。下面按观看顺序排，第一阶段看前 3 个就够了。</p>
