@@ -74,7 +74,7 @@ nav a.done::after{content:" ✓";color:var(--ok)}
 <header>
   <a href="index.html">← 返回学习地图</a>
   <h1>大模型学习笔记</h1>
-  <p class="sub">从零开始的系统笔记，按学习顺序一章一章写。当前进度：学习路线 + 入门视频 + 第 1、2、3、5、6 章（第 4 章待补）。</p>
+  <p class="sub">从零开始的系统笔记，按学习顺序一章一章写。当前进度：学习路线 + 入门视频 + 第 1–6 章。</p>
   <div class="prog">
     <span id="progTxt">学习进度</span>
     <div class="bar"><i id="progBar"></i></div>
@@ -129,6 +129,20 @@ nav a.done::after{content:" ✓";color:var(--ok)}
   <a href="#c3-12">3.12 动手练习</a>
   <a href="#c3-13">3.13 自测题</a>
   <a href="#c3-14">3.14 延伸阅读</a>
+  <div class="h">第 4 章 Transformer</div>
+  <a href="#c4-1">4.1 为什么需要 Transformer</a>
+  <a href="#c4-2">4.2 注意力机制</a>
+  <a href="#c4-3">4.3 因果掩码</a>
+  <a href="#c4-4">4.4 多头注意力</a>
+  <a href="#c4-5">4.5 位置编码</a>
+  <a href="#c4-6">4.6 Transformer Block</a>
+  <a href="#c4-7">4.7 三种架构</a>
+  <a href="#c4-8">4.8 推理与 KV Cache</a>
+  <a href="#c4-9">4.9 计算量与现代优化</a>
+  <a href="#c4-10">4.10 动手：迷你 GPT</a>
+  <a href="#c4-11">4.11 动手练习</a>
+  <a href="#c4-12">4.12 自测题</a>
+  <a href="#c4-13">4.13 延伸阅读</a>
   <div class="h">第 5 章 RAG</div>
   <a href="#c5-1">5.1 为什么需要 RAG</a>
   <a href="#c5-2">5.2 完整流程</a>
@@ -766,6 +780,243 @@ print(generate("神经网络"))</code></pre>
   <li><a href="https://www.yuque.com/aaron-wecc3/dhluml/pzvo8lz9f0595r00" target="_blank" rel="noopener">259.AI大模型CUDA是什么？</a></li>
 </ul>
 <div class="card"><b>下一章预告：</b>第 4 章 Transformer 原理：注意力机制怎么让模型「看」全文、位置编码、Decoder-only 结构，以及把 3.9 的迷你模型升级成真正的迷你 GPT。</div>
+
+<h2 id="c4-1">第 4 章 Transformer 原理</h2>
+<p>几乎所有大模型（GPT、Claude、LLaMA、Qwen、DeepSeek）用的都是 Transformer 架构。它是面试必考的内容，也是理解长上下文为什么贵、推理为什么要 KV Cache、显存都花在哪里的基础。学完这一章，你会把第 3 章的迷你模型升级成一个真正的迷你 GPT，结构和 GPT 一模一样，只是小很多。</p>
+
+<h3>4.1 为什么需要 Transformer</h3>
+<p>第 3 章的迷你模型有个硬伤：<b>只能看前面固定的 4 个字</b>。可语言里的关联常常隔得很远：「我昨天在那家开了二十年、老板特别热情的小店里买的<b>书</b>，<b>它</b>的封面……」，要知道「它」指什么，得往前看几十个字。</p>
+<p>Transformer 之前，主流方案是 RNN / LSTM：一个字一个字往后读，把前面的信息压缩进一个「记忆」向量里传下去。它有两个问题：</p>
+<ul>
+  <li><b>记不住远处：</b>信息要一步步传递，传得越远丢得越多。</li>
+  <li><b>没法并行：</b>必须等前一个字算完才能算下一个，GPU 的并行能力用不上，模型很难做大。</li>
+</ul>
+<div class="key">2017 年的论文《Attention Is All You Need》提出了 Transformer，核心是<b>注意力机制：每个字都能直接看到前面所有的字，并自己决定该重点关注哪些。</b>距离再远也是一步就能看到，而且所有位置可以同时计算。正是这两点，让模型可以扩展到今天的规模。</div>
+
+<h3 id="c4-2">4.2 注意力机制：直觉</h3>
+<p>看这句话：「小明把苹果给了小红，因为<b>她</b>饿了。」模型处理「她」的时候，需要知道「她」指的是小红。注意力机制让「她」去「问」前面每一个字：你和我有多相关？「小红」得分最高，「苹果」次之，「把」「了」很低。然后把各个字的信息按得分加权混合，「她」的向量里就融入了「小红」的信息。</p>
+<p>具体实现用了三个向量，可以类比在图书馆查资料：</p>
+<div class="tw"><table>
+  <tr><th>向量</th><th>类比</th><th>作用</th></tr>
+  <tr><td><b>Q（Query，查询）</b></td><td>你要找什么</td><td>当前这个字想找什么信息</td></tr>
+  <tr><td><b>K（Key，键）</b></td><td>每本书的标签</td><td>每个字「我能提供什么」的标签，用来和 Q 比较相关度</td></tr>
+  <tr><td><b>V（Value，值）</b></td><td>书的内容</td><td>每个字真正要传递的信息</td></tr>
+</table></div>
+<p>每个字的 Q、K、V 都由它的向量分别乘以三个可学习的矩阵得到。计算分三步：</p>
+<div class="flow"><span>① 算相关度<br><small>当前字的 Q 和每个字的 K 做点积</small></span><i>→</i><span>② 归一化<br><small>softmax 把分数变成加起来为 1 的权重</small></span><i>→</i><span>③ 加权求和<br><small>按权重把各个字的 V 混合起来</small></span></div>
+<div class="key">写成公式就是：<b>Attention(Q, K, V) = softmax(Q·Kᵀ / √d) · V</b><br>除以 √d（d 是向量维度）是为了防止维度大时点积数值太大，导致 softmax 几乎只选一个、梯度消失。</div>
+<p>因为所有字的计算都可以写成矩阵乘法一次完成，GPU 能把整段文本并行算完，这是 Transformer 比 RNN 快得多的原因。</p>
+
+<h3 id="c4-3">4.3 因果掩码：不许偷看后面</h3>
+<p>GPT 这类模型的任务是预测下一个字，所以每个位置<b>只能看它前面的字</b>，不能看后面的，否则训练时就等于直接看答案。实现方法是在注意力分数矩阵上加一个<b>因果掩码（causal mask）</b>：把「看后面」的位置设为负无穷，softmax 后权重就是 0。</p>
+<p>这带来一个很大的好处：一句 100 个字的话，可以在一次计算里同时训练 100 个「预测下一个字」的任务（第 1 个字预测第 2 个，前 2 个字预测第 3 个……），训练效率比第 3 章的迷你模型高得多。</p>
+
+<h3 id="c4-4">4.4 多头注意力</h3>
+<p>一句话里同时存在很多种关系：指代（「她」→「小红」）、语法（主语和谓语）、语义（「苹果」和「饿」）。只用一组 Q、K、V，很难同时捕捉这么多关系。</p>
+<p><b>多头注意力（Multi-Head Attention）</b>把向量分成几份，每份是一个独立的「头」，各自算注意力，最后拼接起来。每个头可以学会关注不同类型的关系。比如 512 维、8 个头，每个头就负责 64 维。计算量和单头差不多，表达能力却强很多。</p>
+
+<h3 id="c4-5">4.5 位置编码</h3>
+<p>注意力机制本身<b>不知道字的顺序</b>：把一句话的字打乱，每个字算出的注意力结果完全一样。但「狗咬人」和「人咬狗」意思完全不同，所以必须额外告诉模型每个字在第几个位置。</p>
+<div class="tw"><table>
+  <tr><th>方法</th><th>做法</th><th>使用者</th></tr>
+  <tr><td>正弦位置编码</td><td>用不同频率的正弦、余弦函数生成每个位置的向量，加到字向量上</td><td>原始 Transformer</td></tr>
+  <tr><td>可学习位置编码</td><td>每个位置一个可训练的向量（本章迷你 GPT 用的就是这种）</td><td>GPT-2、BERT</td></tr>
+  <tr><td><b>RoPE 旋转位置编码</b></td><td>按位置把 Q、K 向量「旋转」一个角度，让两个字的注意力分数只取决于它们的相对距离</td><td>LLaMA、Qwen、DeepSeek 等主流开源模型</td></tr>
+</table></div>
+<p>RoPE 是现在的主流：它天然表达相对位置，而且配合插值等技巧，可以把训练时 4K 长度的模型扩展到更长的上下文。面试问到「位置编码的演进」，主线就是绝对位置 → 相对位置 → RoPE 及其长度扩展。</p>
+
+<h3 id="c4-6">4.6 Transformer Block：完整的一层</h3>
+<p>一个 Transformer 层（Block）由两部分组成，每部分都配有<b>残差连接</b>和<b>归一化</b>：</p>
+<div class="flow"><span>输入</span><i>→</i><span>归一化</span><i>→</i><span>多头注意力<br><small>在字之间交换信息</small></span><i>→</i><span>+ 残差</span><i>→</i><span>归一化</span><i>→</i><span>前馈网络 FFN<br><small>每个字各自加工信息</small></span><i>→</i><span>+ 残差</span><i>→</i><span>输出</span></div>
+<ul>
+  <li><b>注意力层负责「交流」：</b>让每个字从其他字那里收集信息。</li>
+  <li><b>前馈网络（FFN）负责「思考」：</b>对每个字单独做非线性变换（第 3 章的两层神经网络）。FFN 占了模型大约三分之二的参数，一般认为大量事实知识存储在这里。</li>
+  <li><b>残差连接：</b>把输入直接加到输出上（<code>x = x + 子层(x)</code>）。信息和梯度可以绕过子层直接传递，几十上百层的深网络才训练得动。</li>
+  <li><b>归一化：</b>把每个字的向量数值缩放到稳定的范围，让训练更稳定。原始 Transformer 用 LayerNorm 放在子层之后；现在主流放在子层之前（Pre-Norm），并改用更省计算的 RMSNorm。</li>
+</ul>
+<p>整个模型就是：<b>字向量 + 位置信息 → 堆叠 N 个 Block → 最后输出词表上每个字的分数</b>。GPT-3 堆了 96 层，现代大模型一般几十到上百层。</p>
+
+<h3 id="c4-7">4.7 三种架构：Encoder、Decoder 和两者都有</h3>
+<div class="tw"><table>
+  <tr><th>架构</th><th>注意力方向</th><th>擅长</th><th>代表</th></tr>
+  <tr><td><b>Encoder-only</b></td><td>双向：每个字能看到前后所有字</td><td>理解类任务：分类、抽取、生成 Embedding</td><td>BERT；第 5 章的 Embedding 模型大多是这一类</td></tr>
+  <tr><td><b>Encoder-Decoder</b></td><td>Encoder 双向读输入，Decoder 单向生成输出</td><td>输入输出明确分开的任务，比如翻译</td><td>原始 Transformer、T5</td></tr>
+  <tr><td><b>Decoder-only</b></td><td>单向：只能看前面（因果掩码）</td><td>生成；规模足够大时什么任务都能做</td><td>GPT、Claude、LLaMA、Qwen、DeepSeek</td></tr>
+</table></div>
+<p><b>为什么现在的大模型几乎都是 Decoder-only？</b>结构最简单；所有任务都能统一成「续写」；训练目标（预测下一个 token）可以直接用海量无标注文本；而且实践证明它随规模增长的效果最好，推理时还能用 KV Cache 高效生成。</p>
+
+<h3 id="c4-8">4.8 推理过程与 KV Cache</h3>
+<p>模型生成回答分两个阶段：</p>
+<ul>
+  <li><b>Prefill（预填充）：</b>把你的整个输入一次性并行算完。输入越长，这一步越久，决定了首个 token 出来要等多久。</li>
+  <li><b>Decode（解码）：</b>一个 token 一个 token 地生成，每生成一个都要做一次完整的前向计算。</li>
+</ul>
+<p>问题来了：生成第 101 个 token 时，前 100 个 token 的 K 和 V 和上一步算的完全一样，没必要重算。<b>KV Cache</b> 就是把每一层算过的 K、V 存起来，每次只计算新 token 的部分。这让生成速度大幅提升，代价是显存：</p>
+<div class="key"><b>KV Cache 的大小和「上下文长度 × 层数 × 头数 × 每头维度」成正比，还要乘上同时处理的请求数。</b>长上下文、高并发时，KV Cache 占的显存可能比模型权重本身还多。这就是第 1 章说「实际运行要多留显存」的原因，也是长上下文更贵的原因之一。</div>
+<p>为了省 KV Cache，现代模型做了很多改进：<b>MQA / GQA</b> 让多个查询头共享同一组 K、V；DeepSeek 的 <b>MLA</b> 把 K、V 压缩成更小的向量。第 8 章会讲的 vLLM，核心技术 PagedAttention 也是在更高效地管理 KV Cache。</p>
+
+<h3 id="c4-9">4.9 注意力的计算量与现代优化</h3>
+<p>每个 token 都要和其他所有 token 算一次相关度，所以注意力的计算量和显存随序列长度 <b>n 的平方</b>增长：长度翻倍，注意力的开销变成四倍。这是长上下文的根本难点。</p>
+<div class="tw"><table>
+  <tr><th>技术</th><th>解决什么</th><th>一句话原理</th></tr>
+  <tr><td><b>FlashAttention</b></td><td>注意力慢、占显存</td><td>结果完全不变，只是重新安排计算顺序，分块在 GPU 的高速缓存里算完，避免反复读写显存</td></tr>
+  <tr><td><b>MoE（混合专家）</b></td><td>想要更多参数但不想增加计算量</td><td>把 FFN 换成很多个「专家」，每个 token 只激活其中几个。总参数很大，每次实际计算的参数却不多</td></tr>
+  <tr><td><b>GQA / MLA</b></td><td>KV Cache 太大</td><td>共享或压缩 K、V</td></tr>
+  <tr><td><b>RoPE 长度扩展</b></td><td>想支持更长的上下文</td><td>对位置编码做插值或缩放，再用少量长文本微调</td></tr>
+</table></div>
+<p class="meta">比如 DeepSeek-V3 总参数 6710 亿，但每个 token 只激活约 370 亿参数，这就是 MoE 的效果。</p>
+
+<h3 id="c4-10">4.10 动手：从零写一个迷你 GPT</h3>
+<p>下面把第 3 章的迷你模型换成真正的 Transformer：多头因果自注意力、前馈网络、残差连接、LayerNorm、位置编码，和 GPT-2 的结构一致。代码约 90 行，在普通电脑的 CPU 上也能训练。环境沿用第 3 章（<code>pip install torch</code>）。</p>
+<p>新建 <code>mini_gpt.py</code>：</p>
+<pre><code>import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+torch.manual_seed(0)
+
+<span class="c"># ---------- 1. 数据 ----------</span>
+text = ("大模型是在海量文本上训练出来的神经网络。大模型的核心任务是预测下一个字。"
+        "注意力机制让每个字都能看到前面所有的字，并决定重点关注哪些。"
+        "位置编码告诉模型每个字在第几个位置。残差连接让很深的网络也能训练。"
+        "训练大模型需要大量数据和算力，推理时用缓存避免重复计算。") * 30
+chars = sorted(set(text))
+stoi = {c: i for i, c in enumerate(chars)}
+itos = {i: c for c, i in stoi.items()}
+data = torch.tensor([stoi[c] for c in text])
+
+<span class="c"># ---------- 2. 超参数 ----------</span>
+BLOCK = 32    <span class="c"># 上下文长度：最多看前面 32 个字</span>
+DIM = 64      <span class="c"># 每个字的向量维度</span>
+HEADS = 4     <span class="c"># 注意力头数，每个头 16 维</span>
+LAYERS = 2    <span class="c"># Transformer 层数</span>
+
+def get_batch(batch_size=32):
+    ix = torch.randint(0, len(data) - BLOCK - 1, (batch_size,))
+    x = torch.stack([data[i:i + BLOCK] for i in ix])
+    y = torch.stack([data[i + 1:i + BLOCK + 1] for i in ix])  <span class="c"># 每个位置的下一个字</span>
+    return x, y
+
+<span class="c"># ---------- 3. 多头因果自注意力 ----------</span>
+class SelfAttention(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.qkv = nn.Linear(DIM, 3 * DIM)  <span class="c"># 一次算出 Q、K、V</span>
+        self.proj = nn.Linear(DIM, DIM)
+        <span class="c"># 下三角矩阵：第 i 个字只能看第 0..i 个字</span>
+        self.register_buffer("mask", torch.tril(torch.ones(BLOCK, BLOCK)))
+
+    def forward(self, x):
+        B, T, C = x.shape
+        q, k, v = self.qkv(x).split(DIM, dim=2)
+        <span class="c"># 拆成多个头：(B, T, C) → (B, HEADS, T, C/HEADS)</span>
+        q = q.view(B, T, HEADS, C // HEADS).transpose(1, 2)
+        k = k.view(B, T, HEADS, C // HEADS).transpose(1, 2)
+        v = v.view(B, T, HEADS, C // HEADS).transpose(1, 2)
+        att = q @ k.transpose(-2, -1) / (C // HEADS) ** 0.5            <span class="c"># ① 相关度</span>
+        att = att.masked_fill(self.mask[:T, :T] == 0, float("-inf"))   <span class="c"># 因果掩码</span>
+        att = F.softmax(att, dim=-1)                                   <span class="c"># ② 归一化</span>
+        out = att @ v                                                  <span class="c"># ③ 加权求和</span>
+        out = out.transpose(1, 2).reshape(B, T, C)                     <span class="c"># 把各个头拼回去</span>
+        return self.proj(out)
+
+<span class="c"># ---------- 4. Transformer Block ----------</span>
+class Block(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.ln1 = nn.LayerNorm(DIM)
+        self.attn = SelfAttention()
+        self.ln2 = nn.LayerNorm(DIM)
+        self.ffn = nn.Sequential(nn.Linear(DIM, 4 * DIM), nn.GELU(), nn.Linear(4 * DIM, DIM))
+
+    def forward(self, x):
+        x = x + self.attn(self.ln1(x))  <span class="c"># 注意力 + 残差（Pre-Norm）</span>
+        x = x + self.ffn(self.ln2(x))   <span class="c"># 前馈网络 + 残差</span>
+        return x
+
+<span class="c"># ---------- 5. 完整的 GPT ----------</span>
+class MiniGPT(nn.Module):
+    def __init__(self, vocab_size):
+        super().__init__()
+        self.tok_emb = nn.Embedding(vocab_size, DIM)   <span class="c"># 字向量</span>
+        self.pos_emb = nn.Embedding(BLOCK, DIM)        <span class="c"># 可学习的位置编码</span>
+        self.blocks = nn.Sequential(*[Block() for _ in range(LAYERS)])
+        self.ln = nn.LayerNorm(DIM)
+        self.head = nn.Linear(DIM, vocab_size)         <span class="c"># 输出词表上每个字的分数</span>
+
+    def forward(self, idx):
+        B, T = idx.shape
+        x = self.tok_emb(idx) + self.pos_emb(torch.arange(T))
+        x = self.blocks(x)
+        return self.head(self.ln(x))                   <span class="c"># (B, T, 词表大小)</span>
+
+model = MiniGPT(len(chars))
+print("词表大小:", len(chars), " 参数量:", sum(p.numel() for p in model.parameters()))
+optimizer = torch.optim.AdamW(model.parameters(), lr=3e-3)
+
+<span class="c"># ---------- 6. 训练：每个位置都预测下一个字 ----------</span>
+for step in range(801):
+    x, y = get_batch()
+    logits = model(x)
+    loss = F.cross_entropy(logits.view(-1, logits.size(-1)), y.view(-1))
+    optimizer.zero_grad()
+    loss.backward()
+    optimizer.step()
+    if step % 200 == 0:
+        print(f"第 {step:3d} 步  损失 {loss.item():.3f}")
+
+<span class="c"># ---------- 7. 生成 ----------</span>
+@torch.no_grad()
+def generate(start, n=60, temperature=0.8):
+    ids = torch.tensor([[stoi[c] for c in start]])
+    for _ in range(n):
+        logits = model(ids[:, -BLOCK:])[:, -1, :] / temperature  <span class="c"># 只取最后一个位置的预测</span>
+        next_id = torch.multinomial(F.softmax(logits, dim=-1), 1)
+        ids = torch.cat([ids, next_id], dim=1)
+    return "".join(itos[i] for i in ids[0].tolist())
+
+print(generate("注意力"))
+print(generate("大模型"))</code></pre>
+<p>实测：词表 85 个字，约 11 万个参数，损失从 4.7 降到 0.02 左右，CPU 上十几秒跑完，能续写出通顺的整句。对照代码看几个关键点：</p>
+<ul>
+  <li><code>SelfAttention</code> 里的三行注释 ①②③，就是 4.2 那三步，外加一行因果掩码。</li>
+  <li><code>get_batch</code> 里 y 是 x 整体右移一位：一段 32 个字的文本同时提供 32 个训练样本，这就是 4.3 说的并行训练。</li>
+  <li><code>generate</code> 里每次都把整段文本重新算一遍，只取最后一个位置。真正的推理引擎会用 KV Cache 避免这种重复计算（4.8）。</li>
+  <li>把 <code>DIM</code>、<code>HEADS</code>、<code>LAYERS</code>、<code>BLOCK</code> 调大、数据换成大量文本、放到 GPU 上训练，结构不用改，就是一个真正的 GPT。GPT-2 小版本是 768 维、12 头、12 层、上下文 1024。</li>
+</ul>
+
+<h3 id="c4-11">4.11 动手练习</h3>
+<div class="card">
+<p><b>练习 1：看注意力权重。</b>在 <code>SelfAttention.forward</code> 里把 softmax 之后的 <code>att</code> 存下来，训练完后输入一句话，打印最后一层某个头的注意力矩阵，看看每个字最关注前面哪些字。</p>
+<p><b>练习 2：去掉组件做对比。</b>分别去掉位置编码、去掉残差连接、把 LAYERS 改成 1，各训练一次，对比最终损失和生成效果，体会每个组件的作用。</p>
+<p><b>练习 3：加上 KV Cache。</b>改写 <code>generate</code>，让每一层缓存之前算过的 K 和 V，每步只计算新的一个字。用 BLOCK=256 测一下生成 200 个字的速度提升了多少。</p>
+</div>
+
+<h3 id="c4-12">4.12 自测题</h3>
+<details><summary>1. Transformer 相比 RNN 的两大优势是什么？</summary><p>一是任意两个位置之间一步就能建立联系，不会因为距离远而丢失信息；二是所有位置可以并行计算，能充分利用 GPU，模型才能扩展到很大的规模。</p></details>
+<details><summary>2. 用自己的话解释 Q、K、V 和注意力的计算过程。</summary><p>Q 表示当前字要找什么，K 表示每个字能提供什么的标签，V 是每个字的实际信息。用 Q 和每个 K 做点积算相关度，除以 √d 后经 softmax 变成权重，再按权重对 V 加权求和，得到融合了上下文的新表示。</p></details>
+<details><summary>3. 为什么要除以 √d？</summary><p>维度越大，点积的数值越大，softmax 会变得极端（几乎只选一个），梯度变得很小，训练困难。除以 √d 让数值保持在合适范围。</p></details>
+<details><summary>4. 因果掩码的作用是什么？它带来了什么训练上的好处？</summary><p>让每个位置只能看前面的字，避免预测下一个字时看到答案。好处是一段文本的所有位置可以在一次前向计算里同时训练，效率很高。</p></details>
+<details><summary>5. 为什么需要位置编码？RoPE 有什么优点？</summary><p>注意力本身对顺序不敏感，打乱字的顺序结果不变，所以需要额外加入位置信息。RoPE 通过旋转 Q、K 向量表达相对位置，效果好，并且便于扩展到更长的上下文。</p></details>
+<details><summary>6. 一个 Transformer Block 包含哪些部分？残差连接有什么用？</summary><p>归一化、多头注意力、残差连接，再接归一化、前馈网络、残差连接。残差连接让信息和梯度可以绕过子层直接传递，使很深的网络能够稳定训练。</p></details>
+<details><summary>7. 为什么现在的大模型几乎都是 Decoder-only？</summary><p>结构简单；所有任务都能统一成续写；可以直接用海量无标注文本做预训练；规模扩大时效果提升最好；推理时便于用 KV Cache 加速。</p></details>
+<details><summary>8. KV Cache 是什么？为什么长上下文、高并发时显存压力很大？</summary><p>KV Cache 把每层已经算过的 K、V 存起来，生成新 token 时不用重算前面的部分。它的大小随上下文长度、层数、头数和并发请求数线性增长，长上下文加上高并发时，占用的显存甚至会超过模型权重本身。</p></details>
+<details><summary>9. FlashAttention 和 MoE 分别解决什么问题？</summary><p>FlashAttention 通过分块计算、减少显存读写，让注意力更快、更省显存，计算结果完全不变。MoE 把前馈网络拆成多个专家，每个 token 只激活少数专家，在总参数很大的同时保持每次计算量较小。</p></details>
+
+<h3 id="c4-13">4.13 延伸阅读</h3>
+<p class="more">视频：Karpathy 的《Let's build GPT: from scratch, in code》（入门视频推荐里有链接）用两小时一步步写出了和本章一样的迷你 GPT，强烈建议对照着看。3Blue1Brown 神经网络系列里讲注意力机制的那几集也非常直观。</p>
+<ul class="more">
+  <li><a href="https://www.yuque.com/aaron-wecc3/dhluml/axugerxbgedh1goy" target="_blank" rel="noopener">264.Transformer是什么？Transformer如何工作</a></li>
+  <li><a href="https://www.yuque.com/aaron-wecc3/dhluml/tvgkcr56nzg358k0" target="_blank" rel="noopener">276.多头自注意力机制深度解析</a></li>
+  <li><a href="https://www.yuque.com/aaron-wecc3/dhluml/eipclxvikofncq1v" target="_blank" rel="noopener">22.详述Transformer多头自注意力机制</a></li>
+  <li><a href="https://www.yuque.com/aaron-wecc3/dhluml/gixa7ns7loew24y3" target="_blank" rel="noopener">37.大模型位置编码的演进</a></li>
+  <li><a href="https://www.yuque.com/aaron-wecc3/dhluml/lsx7w2z4gks4ygbx" target="_blank" rel="noopener">33.解释LLaMA的RMSNorm和SwiGLU激活函数改进</a></li>
+  <li><a href="https://www.yuque.com/aaron-wecc3/dhluml/ns23rx0vgu7wwp36" target="_blank" rel="noopener">240.Transformer中的前馈神经网络(FFN)</a></li>
+  <li><a href="https://www.yuque.com/aaron-wecc3/dhluml/iaeivtui729k0z2p" target="_blank" rel="noopener">38.解释FlashAttention的显存优化原理</a></li>
+  <li><a href="https://www.yuque.com/aaron-wecc3/dhluml/gw20652xyiqyip2z" target="_blank" rel="noopener">245.MoE架构深度拆解</a></li>
+  <li><a href="https://www.yuque.com/aaron-wecc3/dhluml/xl8n2nd2k0l4336z" target="_blank" rel="noopener">26.解释Prefix LM与Causal LM的区别</a></li>
+</ul>
+<div class="card"><b>接下来：</b>第 5、6 章（RAG、Agent）已经写好，可以接着读。后面还有第 7 章微调与对齐、第 8 章推理部署与工程化。</div>
 
 <h2 id="c5-1">第 5 章 RAG：让模型基于你的资料回答</h2>
 <p>RAG（Retrieval-Augmented Generation，检索增强生成）是企业落地大模型用得最多的技术。公司知识库问答、客服机器人、合同助手、内部文档搜索，背后基本都是它。学完这一章，你应该能讲清楚 RAG 的完整流程，并亲手跑通一个最小可用的文档问答程序。</p>
