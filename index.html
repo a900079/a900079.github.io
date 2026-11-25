@@ -1,0 +1,802 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>大模型学习地图</title>
+<style>
+:root{--bg:#f7f7f5;--panel:#fff;--ink:#1d1d1b;--muted:#6b6b66;--line:#e4e3de;--accent:#2f6fed;--core:#1a7f4b;--adv:#8a5a00;--prac:#5b4bc4;--warn:#b4472b;--chip:#f0efea}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#141413;--panel:#1d1d1b;--ink:#ecebe6;--muted:#9b9a94;--line:#2e2d2a;--accent:#6b9bff;--core:#4cc38a;--adv:#e0a940;--prac:#a597ff;--warn:#ff8a6b;--chip:#2a2926}}
+:root[data-theme="dark"]{--bg:#141413;--panel:#1d1d1b;--ink:#ecebe6;--muted:#9b9a94;--line:#2e2d2a;--accent:#6b9bff;--core:#4cc38a;--adv:#e0a940;--prac:#a597ff;--warn:#ff8a6b;--chip:#2a2926}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.6 -apple-system,"PingFang SC","Microsoft YaHei",system-ui,sans-serif}
+header{padding:28px 16px 12px;max-width:1180px;margin:0 auto}
+h1{margin:0 0 4px;font-size:26px}
+.sub{color:var(--muted);margin:0}
+.stats{display:flex;gap:10px;flex-wrap:wrap;margin:16px 0 4px}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px 14px}
+.stat b{font-size:20px;display:block}
+.stat span{color:var(--muted);font-size:13px}
+.wrap{max-width:1180px;margin:0 auto;padding:0 16px 60px;display:grid;grid-template-columns:240px 1fr;gap:24px}
+nav{position:sticky;top:12px;align-self:start;max-height:calc(100vh - 24px);overflow:auto}
+nav a{display:flex;justify-content:space-between;padding:6px 10px;border-radius:8px;color:var(--ink);text-decoration:none;font-size:14px}
+nav a:hover,nav a.on{background:var(--chip)}
+nav a small{color:var(--muted)}
+.tools{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px;position:sticky;top:0;background:var(--bg);padding:10px 0;z-index:2}
+.tools input[type=search]{flex:1;min-width:200px;padding:9px 12px;border:1px solid var(--line);border-radius:9px;background:var(--panel);color:var(--ink);font-size:15px}
+.f{border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:999px;padding:6px 12px;cursor:pointer;font-size:13px}
+.f.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+section{margin-bottom:28px}
+section h2{font-size:18px;margin:0 0 2px}
+section p.d{color:var(--muted);margin:0 0 10px;font-size:14px}
+.list{background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.it{display:flex;gap:10px;align-items:baseline;padding:9px 14px;border-top:1px solid var(--line)}
+.it:first-child{border-top:0}
+.it a{color:var(--ink);text-decoration:none;flex:1}
+.it a:hover{color:var(--accent);text-decoration:underline}
+.note{display:block;color:var(--muted);font-size:13px}
+.tag{font-size:12px;padding:1px 8px;border-radius:999px;white-space:nowrap;border:1px solid currentColor}
+.t-c{color:var(--core)}.t-a{color:var(--adv)}.t-p{color:var(--prac)}.t-v{color:var(--warn)}
+.t-o,.t-d,.t-i{color:var(--muted)}
+.src{color:var(--muted);font-size:12px;white-space:nowrap}
+.removed .it a{color:var(--muted)}
+.rd{width:16px;height:16px;accent-color:var(--core);flex:none;align-self:center;cursor:pointer}
+.it.read a{color:var(--muted)}
+.empty{padding:14px;color:var(--muted)}
+.tb{margin-left:auto}
+@media (max-width:760px){.wrap{grid-template-columns:1fr}nav{position:static;max-height:none;display:flex;flex-wrap:wrap;gap:4px}nav a{padding:4px 10px;background:var(--panel);border:1px solid var(--line)}nav a small{margin-left:6px}.src{display:none}}
+</style>
+</head>
+<body>
+<header>
+  <h1>大模型学习地图</h1>
+  <p class="sub"><a href="notes.html" style="color:var(--accent)">→ 打开我的学习笔记（学习路线、入门视频、第 1、2、5 章，带学习进度）</a></p>
+  <p class="sub">基于「图灵AI大模型面试核心点(2026版)」目录做的审计与学习路线，后两个模块是后端与架构内容。点标题会打开语雀原文，需要你自己的访问密码。审计时间：2026-10-25。</p>
+  <div class="stats" id="stats"></div>
+</header>
+<div class="wrap">
+  <nav id="nav"></nav>
+  <main>
+    <div class="tools">
+      <input type="search" id="q" placeholder="搜索标题或说明…">
+      <button class="f on" data-t="all">全部</button>
+      <button class="f" data-t="c">核心</button>
+      <button class="f" data-t="a">进阶</button>
+      <button class="f" data-t="p">实操</button>
+      <button class="f" data-t="v">注意版本</button>
+      <button class="f tb" id="hideRead">隐藏已读</button>
+      <button class="f" id="showRm">显示已移除</button>
+    </div>
+    <div id="out"></div>
+  </main>
+</div>
+<script>
+const BASE = "https://www.yuque.com/aaron-wecc3/dhluml/";
+const MODS = {
+  A:["入门与全景","先建立整体认知：大模型是什么、能做什么、怎么学。建议从「学习路线」开始。"],
+  B:["深度学习与 NLP 基础","神经网络、训练、损失、激活等前置知识。RNN/CNN 了解即可，不必深挖。"],
+  C:["Transformer 与模型架构","面试和理解大模型最核心的部分：注意力、位置编码、归一化、MoE、FlashAttention。"],
+  D:["预训练、微调与对齐","SFT、LoRA/QLoRA、PEFT、RLHF/PPO/DPO、数据构造与灾难性遗忘。"],
+  E:["分布式训练与显存优化","DDP/FSDP、DeepSpeed ZeRO、混合精度、梯度累积、并行策略。"],
+  F:["推理、量化与部署","vLLM、量化、蒸馏、推理显存估算、延迟与成本优化。"],
+  G:["RAG 与知识库","分块、向量检索、Rerank、评测、GraphRAG、Agentic RAG。"],
+  H:["Agent、MCP 与上下文工程","提示词、ReAct、多 Agent、记忆、MCP、Skills、上下文工程。"],
+  I:["AI 编程与工程化","Claude Code、Codex、Harness Engineering、Vibe Coding 等 AI 编程实践。"],
+  J:["多模态","CLIP、ViT、BLIP/ALBEF、跨模态对齐。"],
+  K:["评测、幻觉与安全","模型评测指标、幻觉检测与抑制、合规与安全防护。"],
+  L:["项目方案与行业落地","面试中的系统设计题、行业落地案例。"],
+  M:["框架实操","LangChain 1.0、LangGraph、LlamaIndex、HF Transformers、LLaMA Factory、Swift、XTuner。"],
+  N:["低代码平台与 AI 办公","Dify / Coze 入门、RAG、MCP，以及各类业务工作流案例和 AI 办公技巧。先看标「入门第一篇」的。"],
+  P:["Java 后端面试题","Java、Spring、MySQL、Redis、消息队列、并发等后端面试短文。"],
+  Q:["大厂架构实践","系统设计与大厂架构案例：高并发、网关、分库分表、IM、Feed 流、秒杀等。"]
+};
+const TAGS = {c:"核心",a:"进阶",p:"实操",v:"注意版本",o:"过时",d:"重复",i:"不相关"};
+const RM = {o:["已过时","模型、框架或 API 已被取代，学习价值低"],d:["重复内容","与其他文章主题重复，保留了更新或更完整的一篇"],i:["与大模型学习无关","不相关内容"]};
+// slug|title|module.tag[.v]|note    removed: slug|title|x.reason|note
+const RAW = `foho2nsutnn37gw3|AI大模型面试系列|A.a|面试专题总览页
+rdguqsoqntk48ftz|154.对比学习相似度函数面试题|B.a
+lqpui5vx6gcsb6k3|153.大模型强化学习面试题|D.c
+axsk3zggus0zd5u2|152.大模型强化学习PPO面试题|D.c
+afagmtefqn64ogol|151.大模型损失函数面试题|B.c
+fxqsgmfl5ignq3kq|150.大模型激活函数面试题|B.c
+qc16ct7uilro93zx|149.Attention 进阶面试题|C.c
+fgwtn7wv8f9z4wgk|148.深度学习层归一化面试题|C.c
+pv24qy7bnggoc8gq|147.强化学习自然语言应用面试题|D.a
+ok8n7619gnol7842|146.大模型负样本样本挖掘面试题|G.a|Embedding/检索模型训练相关
+zuq88qq0rwumnica|145.大模型生成SFT数据方法面试题|D.c
+bmf8fs19qg0llr2u|144.大模型进阶面试题|A.a
+sg3vsy8co2gu700u|143.大模型RLHF相关面试题|D.c
+ffgqn03y3bhzyfrv|103.BERT相关面试题|C.a|编码器模型，了解即可
+xvr7mk4f0mv5xt2i|102.Prompting相关面试题|H.c
+azvggxqgb62b5as5|101.GPT模型相关面试题|C.c
+bx9wcsbxa8khcfqr|100.ULM-FiT迁移学习面试题|x.o|2018 年的迁移学习方法，已被预训练 + 指令微调范式取代
+bq1axvdg993qdvno|99.编码器和解码器面试题|C.c
+hw5cdcz4o6rigxpn|98.Embedding模型面试题|G.c
+scgemvyfgbksy73v|97.预训练模型面试题|D.c
+gdwdnd190olv9dku|96.seq2seq与Attention面试题|B.a|历史脉络，帮助理解注意力的由来
+bbewn7gg9xeb47gd|95.自然语言处理与LLM面试题|A.c
+daoi8mxqc6n6dgfm|94.强化学习常见面试题|D.a
+fsdyq4u36rrgfip3|93.循环神经网络面试题|B.a|前置知识，非重点
+yd0qm3b7gu8tan54|92.卷积神经网络面试题|B.a|前置知识，非重点
+xxzrwlp1l5eihzy4|91.大模型基础面试题|A.c
+nl83bim2b562w4x7|90.神经网络训练面试题|B.c
+tliixz7uz16zpkos|89.神经网络结构面试题|B.c
+az0exuwracr8p2w0|88.浅层学习和深度学习面试题|B.a
+xf23iy5wpbwgp227|87.强化学习的关键特点和应用|D.a
+damagi7rng9pg0bm|86.有监督和无监督学习的区别|B.a
+hr9zgdygchggdc94|52.大模型输出格式如何控制|H.c|结构化输出，工程中高频
+xl8n2nd2k0l4336z|26.解释Prefix LM与Causal LM的区别|C.c
+qzk2ugfhv0oa4fr8|23.解释大模型中的“涌现能力”及产生原因|A.c
+fmflsmxykgoc42nq|1.提示词工程能解决什么问题?|H.c
+kzmglpe7q1r28iw6|1.详细说下RAG的流程|G.c|RAG 入门第一篇
+bbrucpoccltuws6m|115.Langchain RAG问答应用面试题|G.p.v|代码基于旧版 LangChain，思路可用
+hnxpiga5sk54su0s|114.大模型RAG文本分块面试题|G.c
+rm48hecz8y2gmkup|113.大模型RAG评测面试题|G.c
+vogpr2x2zonn4rte|112.大模型RAG表格识别方法面试题|G.a
+xa5cwswgpgr5e5ag|111.大模型外挂知识库优化面试题|G.c
+sw8kcvhv7srici10|110.Graph RAG面试题|G.a
+gw77y74hsesa3vrs|109.RAG Fusion优化策略面试题|G.a
+tb6mmdxw679ogdnh|108.RAG关键痛点和解决方案面试题|G.c
+lzua45bkpsbswtc6|107.大模型RAG相关面试题|G.c
+og9ie1qfc3z250h6|106.大模型PDF解析面试题|G.a
+ay94t8s9u0r36tuw|105.大模型文档对话面试题|G.a
+hic9v8oovd7ki61z|104.RAG优化相关面试题|G.c
+feqrnriq68tvgth8|13.为什么选择向量数据库，而不是传统数据库|G.c
+ghwzgigizngctdsu|19.怎么解决大模型幻觉问题|K.c
+pxqhhnldglquvy6b|48.RAG系统的核心组件及工作逻辑|G.c
+pc1ygdwwhb0pc8y3|49.如何解决RAG中的语义鸿沟问题|G.a
+gwh01p5q6v48lxvt|51.向量数据库选型对比|G.a.v|产品迭代快，选型前核对最新版本
+vx35bqvvtpgpisng|54.模型幻觉的检测与抑制技术|K.c
+zw193nh98sdza9g4|63.如何构建领域专属的知识图谱|G.a
+gfnd8tgciphgz3iw|68.文档问答系统的检索召回率提升方案|G.c
+iggg84u8gzbqt61a|4.大模型微调流程是怎样的?|D.c|微调入门第一篇
+empp7usbb32lsv01|139.大模型Adapter微调面试题|D.a
+cbh20m4gwzzzh36p|138.大模型显存优化策略面试题|E.c
+fa61x5b7mne6z613|137.大模型评测面试题|K.c
+yxivtaeb3cduskrx|136.分布式训练之PyTorch多进程模块面试题|E.a
+kbhx2wt9bydh7pvr|135.大模型训练经验面试题|D.a
+wa517d3g9voa2dcf|134.大模型训练集面试题|D.c
+mdvrykdmsshphs27|133.增量预训练Pretrain样本拼接面试题|D.a
+hcr983sv54mfvkh1|132.Prompting学习微调面试题|D.a|Prompt Tuning 一类方法现在用得少，了解即可
+snt45cb6ntnwcz0z|131.大模型显存问题面试题|E.c
+whq62zc8d0li3d92|130.Accelerate分布式训练面试题|E.p
+fbk7m8i537oi03s6|129.大模型PEFT库中使用LoRA技巧面试题|D.p
+vr6k9cgg7cx6315r|128.分布式训练之AMP混合精度训练面试题|E.c
+hinzgsuu7q1bzovk|127.大模型推理相关面试题|F.c
+mb6rqdfp2ymhebl4|126.分布式训练DeepSpeed面试题|E.c
+vmytxne2glgwv5xd|125.大模型LoRA微调面试题|D.c
+qog7d9qz9umc7yb3|124.分布式训练之DataParallel面试题|E.a|DP 基本已被 DDP/FSDP 取代，了解原理即可
+dvkgg9noywos333f|123.分布式训练之ZeRO学习面试题|E.c
+ni567glr0gaiooqk|122.大模型增量预训练面试题|D.a
+gsxxfgtzt9ocarfr|121.分布式并行训练面试题|E.c
+cu2k7my7hox12h4f|120.大模型流水线并行训练面试题|E.a
+dq2k7txcr1vf4x47|119.大模型分布式训练面试题|E.c
+nez18vcdbb6kkw29|118.大模型参数高效微调面试题|D.c
+mrmga6qmug2paa1y|117.Llama模型Lora训练微调面试题|D.p
+bqvtrfn2hz6hgfh4|116.大模型微调相关面试题|D.c
+zs2d4n1k48mldpx9|5.模型微调怎么评估效果|K.c
+gnv3qlri9d2vwg8g|6.怎么针对超长文本进行微调训练|D.a
+otktae74z8oub96g|9.如何利用大模型实现多模态任务|J.a
+ldlpooeumro82ccv|10.如何降低大模型API服务的推理延迟和成本|F.c
+inbvm7k9b2fybag2|11.什么是过拟合和欠拟合|B.c
+ratt2egrvqiu4vab|12.解释下全参数微调、Lora、QLora区别|D.c
+at6v9igz5eso9lrc|15.解释下模型蒸馏和模型量化|F.c
+yyp5qwytfylf5uto|17.什么是大模型epoch和学习率|B.c
+ke8c3lx6lp6vfvxt|18.vllm的推理加速是怎么实现的|F.c
+yngayf07gxk81ggx|20.PPO与DPO的区别|D.c
+ch1yrn4i1f43w7ak|21.微调时模型遗忘怎么解决|x.d|与「44.大模型灾难性遗忘的解决方案」重复
+nep58qyac0lf4kcg|27.大模型训练中梯度消失和爆炸的解决方案|B.c
+ebngmt10mt8akxt2|29.知识蒸馏的原理及适用场景|F.a
+ovp8vxcoo62f87cg|28.大模型评估指标BLEU、ROUGE、Perplexity适用场景|K.c
+nbe3a3ro08wszctb|30.模型量化的方法及推理加速效果|F.c
+vhyg385tknng23gp|31.对比AE、VAE、GAN的生成机制|J.a|生成模型背景知识
+gpz20h3t4xd8zr9s|34.GPT与BERT的核心区别及各自优势|C.c
+zgpgy9cg4161wrm6|41.全参数微调需要多少显存？|E.c
+oxbg2uitm5ggcxn9|42.LoRA的原理及参数量计算|D.c
+svhq4i7lqdh1lyke|43.对比SFT、RLHF、DPO的优劣|D.c
+int0g6qub677nbec|44.大模型灾难性遗忘的解决方案|D.c
+wiyyx2wd7x4olx8x|45.DeepSpeed ZeRO的显存优化策略|E.c
+wgxy0473k02chp6a|46.混合精度训练的实现步骤及Loss Scaling作用|E.c
+uckz97oam6tl932d|47.梯度累积的计算原理与显存优化效果|E.c
+pr5e241x8pgbey2f|53.多模态大模型的跨模态对齐方法|J.c
+aa1pgavo513ps9z5|56.大模型API服务部署优化|F.c
+hw9doo8108gbd1pn|57.如何估算模型推理所需显存|F.c
+srt4ymy101a4mgro|58.大模型服务GPU选型|F.a.v|硬件代际更新快，型号与价格要核对
+givkaggiff5upbb6|61.大模型推理性能优化方案|F.c
+ch4ss33lmwva02mm|62.分布式训练中的梯度累积实现原理|x.d|与「47.梯度累积的计算原理」重复
+wg9owr0klrupk5g0|64.模型蒸馏的蒸馏策略对比|F.a
+vr2pn6350xhkp3e0|69.模型量化对推理速度的影响评估|F.a
+ukriaevbb901tmct|70.自动化测试框架在LLM开发中的应用|K.a
+dgolqxcfezzsqozb|71.多语言模型的对齐与融合策略|D.a
+ugvbtbgcd5n46gdh|74.基于强化学习的对话策略优化|L.a
+gdp6p5ohrgdw5nzg|78.多模态预训练数据集构建流程|J.a
+nf1wv0gxnqpk74en|81.模型微调的数据增强技术|D.a
+crtkx2g31keczqth|83.基于知识蒸馏的小模型部署方案|F.a
+gyy7fzdmcr2eez0i|142.Transformers操作面试题|M.p
+eipclxvikofncq1v|22.详述Transformer多头自注意力机制|C.c
+egx0sbh930a54r45|24.Transformer中位置编码的作用|C.c
+fy43dg5d9uzgl0s6|25.LayerNorm vs BatchNorm的适用场景|C.c
+yzyxl3g4p54dneq9|32.Transformer的编码器-解码器结构工作流程|C.c
+lsx7w2z4gks4ygbx|33.解释LLaMA的RMSNorm和SwiGLU激活函数改进|C.c
+mc97nmoeh02itlbk|35.混合专家模型（MoE）如何降低计算成本？|C.c
+dkl0hn9yqg2vgb0p|36.大模型长文本处理的优化方案|C.c
+gixa7ns7loew24y3|37.大模型位置编码的演进|C.c|RoPE 等，面试高频
+iaeivtui729k0z2p|38.解释FlashAttention的显存优化原理|C.c
+xrn5xdyw0q3aezo9|39.对比LSTM&GRU与Transformer的长距离依赖处理能力|B.a
+inv2veerguctpoxg|40.模型稀疏化的实践方法|F.a
+hybkp8q9hqhfsuoz|141.长期记忆8种优化方式面试题|H.c
+agrv77xxe2yz5gbq|140.大模型Langchain面试题|M.a.v|基于旧版 LangChain
+dglul2pucg43vrxo|2.Agent如何搭建?可以用那些框架|H.c.v|框架格局变化快
+gzedsxd4fl9d14fy|14.详细说下LangChain框架应用场景|M.a.v
+wo9pmvvk9cmdqnsk|50.Agent的ReAct框架原理|H.c
+wpmgxekgb5eygenm|55.如何设计一个多Agent协作系统架构|H.c
+snoxhrutgoybigeg|专题七--项目方案篇|L.a|项目方案总览页
+hy69tx2mmak586k1|1.大模型应用如何保证实时性和多轮对话一致性|L.c
+mbsw1ei2f3oau7un|2.如何保证大模型生成内容的合规性|K.c
+uw7bqsah7yd9ghyx|3.大模型意图识别是怎么做的|L.c
+iu6dghg78w7nsdhc|4.大模型监控指标设计|K.a
+wt5o9nlcrw0cu9bn|5.大模型安全防护方案|K.c|含 Prompt 注入防护
+rhttcgfkv339zmgq|6.实时对话系统的状态管理方案|L.a
+rq1142vtxfrw8f1w|7.多轮对话的上下文建模方法|L.a
+ael69mgev87brygu|8.智能客服的FAQ匹配算法优化|L.a|偏传统检索方案
+eurga8yxi1q3pvy1|9.大模型可解释性增强技术|K.a
+db0emkai9h7e37gz|10.对话系统的冷启动解决方案|L.a
+ysa0iu91yceg43y5|11.大模型API的限流熔断设计|L.a
+rps6ak3gensgi9yx|12.模型版本管理系统的实现要点|L.a
+tuvw9627ib0k4bg9|13.对话日志的分析与挖掘方法|L.a
+pb6bq6qgag05lw7q|14.基于Prompt的模型行为控制技术|H.a
+dxzvon9yet37i8n2|15.对话系统的多租户隔离方案|L.a
+ub0zfhkleqbb1q2k|16.对话系统的意图识别准确率优化|L.a
+ag9ulsic7lt55tim|17.多轮对话的连贯性保持方法|L.a
+whfo02pgpopr9ye9|18.对话系统的多模态输入处理流程|J.a
+tcbq2z13x9uo8ofx|金融行业落地|L.a
+ffu3n0b1dgrxrogb|医疗行业落地|L.a
+oqffsqrgk3zogzti|教育行业落地|L.a
+oacqckq0hrvp7l3h|电商行业落地|L.a
+xymrgeil4ovv9we2|物流行业落地|L.a
+skevr624btty46cn|政务行业落地|L.a
+sc75teei4wk03ya5|制造行业落地|L.a
+byxapxgndgw58yuv|能源行业落地|L.a
+ygfm4r927k0uycd2|通信行业落地|L.a
+sr2z6h668tpigtsk|交通行业落地|L.a
+gu5vmrrrlebgtgdx|泛娱乐行业落地|L.a
+gq5n7l8nlgx4m08r|专题九--公司落地篇|L.a
+soznzt09nuzptr5z|阿里巴巴 Harness AI工程化编程实践|I.c
+fhowrdl9sccuglho|Claude Code 实战从入门到精通|I.c|新版，替代旧的 166-168 三篇
+fbcbb51drzs2v9gg|Claude Code 配套代码|I.p
+waeaidol5u28zk1k|287.Codex 实战从入门到精通|I.c
+gawdz2xv2op39t0r|Codex 配套代码|I.p
+gpdozlhsv606qo7c|286.Hermes Agent 实战从入门到精通|I.a
+mz1y952ais850orv|Hermes Agent 配套代码|I.p
+lasegy25krvdct8f|285.Harness Engineering 从入门到精通实战|I.c
+kslow2ndts7dy4i8|Harness Engineering 配套代码|I.p
+wg3cex8o6749nimo|284.Agent Skill 原理和实践指南|H.c
+vkwx7yzg1vmka5ls|283.DeepSeek-R1微调实战|D.p
+zmgtge1v5sgvn28u|282.ReAct框架原理解析与面试实战|H.c
+eyr0nqhftgv7y2tg|281.从传统RAG到Agentic RAG的进阶优化|G.c
+nbwig4qsg27oe70s|280.Rerank模型深度讲解|G.c
+fkgxzh8w1nu011e7|279.17种RAG优化策略|G.c
+lv2zzg1475b5eg7e|278.多智能体架构深度解析|H.c
+zht4k4ig6kyx3tpy|277.LangChain 1.0应该要怎么用|M.c|当前版本，LangChain 优先看这篇
+tvgkcr56nzg358k0|276.多头自注意力机制深度解析|C.c
+imgoyhfed449csto|275.神经网络工作原理深度解析|B.c
+neawnny9hgo6rqx2|274.BERT核心原理及预训练机制|C.a
+ddrg0wcfk6la6kaw|273.向量化和词嵌入的区别是什么|B.a
+gooksnxdyplqi14g|272.模型蒸馏是什么|F.a
+zg8urb7x0zk773og|271.零基础速通AI大模型应用开发学习路线|A.c|建议第一篇读
+gn8b8bg5h0k1qqbk|270.AIGC与生成式AI全景拆解|A.a
+mp1ti80tl0qkwoth|269.SFT、RLHF、DPO的真实边界|D.c
+uiv5b4715gh7cb1z|268.知识图谱嵌入技术|G.a
+qebqin2a5egawuqu|267.AI大模型企业落地实战指南|L.c
+gh5z85eq4s1y88nx|266.知识图谱全景导读|G.a
+amnkbreuehdhp92m|265.提示词工程Prompt Engineering|H.c
+axugerxbgedh1goy|264.Transformer是什么？Transformer如何工作|C.c|Transformer 入门首选
+bw9fm1b6uw2ime9e|263.多模态融合技术前沿进展深度解析|J.a
+eubv76fledka7oee|262.六大AI核心概念：从幻觉到Agent|A.c
+bi5e61vhfg9m5i2r|261.Gemini 3.0模型测评|x.o|单一模型测评，时效性强，不是原理内容
+guz3lyyauv8qezws|260.如何微调BERT模型进行文本分类|M.p
+pzvo8lz9f0595r00|259.AI大模型CUDA是什么？|F.a
+dzbsdqhpig6gb73q|258.认识AI大模型：从基础到应用|A.c
+kxx2eser5dxpmx98|257.AI大模型推理与训练详解|A.c
+yiqzudklux99cwag|256.新手小白如何入门大语言模型？|A.a
+qyc9sz8kto600tu6|255.AI大模型预训练与微调|D.c
+glomlmu3sv9bb7ba|254.AI大模型技术解析：从基础架构到核心机制|A.a
+mb85i3phga07ccw0|253.多模态Vision Transformer|J.c
+dxy9nztkpy5lwmnw|252.AI大模型思维链原理|A.c|推理模型的基础
+hi0775p99vpxunu6|251.AI大模型工作原理及三大核心能力|A.a
+gytrwfoxx3iw2ysa|250.LlamaFactory微调你的AI大模型|M.p
+zqdxnvxnmcgeacv6|249.Transformer核心原理与训练优化|C.c
+mtzwos32eywx2xx3|248.多模态算法BLIP模型深度解析|J.a
+rohivs6iprx4r22k|247.多模态算法ALBEF模型解析|J.a
+nzp5eqabv6gcy6q1|246.基于LangGraph搭建一个Agent应用|M.p
+gw20652xyiqyip2z|245.MoE架构深度拆解|C.c
+hbgpfdsw6bxiwbsp|244.对比学习MOCO|J.a
+sekk4khdgv4sa6bp|243.多模态大模型CLIP核心机制|J.c
+bwgnaty22c2dlq5t|242.知识图谱的构建和应用|G.a
+qtm4y2es93g6fdty|241.RAG十种优化技巧|G.a|与 279 有重叠，可作补充
+ns23rx0vgu7wwp36|240.Transformer中的前馈神经网络(FFN)|C.c
+mht9vpeehvqfhlhc|239.从0开始写一个AI Agent|H.c|动手理解 Agent 循环
+iihzheb5eb9fmmx0|238.混合专家模型MoE|x.d|与「245.MoE架构深度拆解」重复
+tunb7tmgrmqhb7un|237.Al Agent核心概念和模块|H.c
+qkq71ffzawg7qpdv|236.多模态模型CLIP|x.d|与「243.多模态大模型CLIP核心机制」重复
+egwdleuufk2sqx1e|235.17种RAG优化策略|x.d|与「279.17种RAG优化策略」同名重复
+ve67nb9v8a1mp6k7|234.如何评估RAG|G.c
+zm4u3gntgfwss7hc|233.多头注意力机制|x.d|与「276.多头自注意力机制深度解析」重复
+xypfru87gx3dm8c2|232.大模型微调部署与前后端调用全流程解析|D.p
+hgg3gdfo659onri7|231.LLM的局限性与RAG技术引入|G.a
+dtggg4mpwebqtpkr|230.MCP一键生成可视化Excel|N.p|办公技巧，MCP 原理看 208/190
+rgx7n0yx392lgy2f|229.知识图谱是什么|x.d|被「266.知识图谱全景导读」覆盖
+xqk41iqbz95muab5|228.LangChain应用框架实践教程|M.p.v|旧版 API，对照 277 学
+zuee2n3pcsr43bi9|227.如何进行词嵌入|B.a
+khohvgo7sw7crnoh|226.Al Agent项目实战|H.p
+zc3iu39zat5xr9fz|225.基于Docker本地部署Coze|N.p
+ztkse06uf7gow482|224.大模型微调流程理论篇|D.c
+biea6yc26gen1oco|223.Dify+Qwen3构建股票分析系统|N.p
+decb9y9h1hngak28|222.用Al优化Excel工作流程|N.p|办公技巧
+rn5oe88amci91kqq|221.LoRA微调从原理到调参|D.c
+wocg4bz4s1wtrxgi|220.多Agent应用最佳实践|H.a
+go81h6yttlggrlks|219.基于Dify的RAG问答工作流|N.p
+qzgka3e44d6fccor|218.卷积神经网络CNN|B.a
+bgqducozefyd9us1|217.深度学习模型工作原理详解|B.c
+wgnslgmvae8aard3|216.DeepSpeed大模型分布式框架|E.p
+zxtb0gqy70ytt0fp|215.模型测评之如何评估大模型的表现|K.c
+pg5y7wrb3u3hm5aa|214.借助大模型API自动处理任务|A.p
+tt2pgbpy5wuckd4h|213.如何微调训练电商大模型|D.p
+re3cg1bckhxzrwc4|212.如何实现一个RAG架构|G.p
+hy0h50n3hhiw69zn|211.深入理解Transformer技术原理|C.c
+tt2frr2a329gqzwk|210.Vibe Coding 从入门到实践|I.a
+eogdglqhd2lgca9g|209.RAG技术的三大范式和技术演进|G.c
+gfuzpqgx3u12agf2|208.MCP最佳落地实践|H.c
+fggwhkceyozgsz81|207.零代码搭建Excel数据分析可视化小助手|N.p|办公技巧
+xy63l71g3zkbmt1e|206.Coze知识库和记忆|N.p
+dwqg5eumz757eitv|205.Coze工作流和触发器|N.p
+pbrl0pqfqbwbahr2|204.为什么说Al大模型微调中最不需要关注的就是GPU|E.a|观点类文章
+tcdi1k204nc2tecc|203.Agents 最佳实践指南.pdf|H.c
+esx1atnqycz2ak4g|202.用大白话理解提示工程、RAG、微调|A.c
+zxyp9ychb7hxfiau|201.Al大模型4大基础组件|A.a
+ohvpodyb32d5cggy|200.大模型思维链原理|x.d|与「252.AI大模型思维链原理」重复
+ssxh80kiytq2w9dn|199.模型微调数据集创建工具Easy dataset|D.p
+lzf8t2uyut4r68g7|198.MoA是什么？它与MoE的区别是什么？|C.a
+ona1z3vt7g0x4ray|197.上下文工程：从对话到上下文工程|H.c|2025 年后的重点方向
+hg8i37dzsq6q6sop|196.LangChain、Dify、n8n、Coze框架对比|M.c.v|选型参考，注意各框架版本
+rhgxi76ocmek2oa1|195.模型微调原理|D.c
+gesb0gxdbielqug3|194.AI大模型幻觉深度解析|K.c
+to97g7byu4k944me|193.AI+Agent三大核心技术|H.a
+lk8wfumtm6x19byk|192.Llamalndex构建基于行业数据的LLM应用|M.p
+uoose19iw02kwmh2|191.Llamalndex框架入门与实践指南|M.p
+kcc6o1h91dz4x05s|190.MCP 三种通信机制对比|H.c
+bzyfgwlngdwu40qg|189.LangGraph子图可控性|x.d|与「53.LangGraph子图可控性」同名重复
+wdyo9me67iy6bpc1|188.LangGraph工作流与人机交互|x.d|与「52.LangGraph工作流人机交互」重复
+toigcb3d7x7bmgwi|187.LangChain 快速入门与底层原理|M.a.v|旧版 API，对照 277 学
+kceraza9xo5m5nr2|186.RAG系统的高级优化工程|G.c
+ikhyeg86skawbb42|185.深入理解检索增强生成(RAG)的工作机制|G.c
+ps3dm3n4logfbmei|184.CodeBuddy Skills AI编程最佳实践|I.a
+kg2lq09u5yfion1q|183.CodeBuddy 自动化数据分析和竞品调研|I.p|CodeBuddy 实际应用案例
+fi5eyf1xgyb7dnil|182.RAG和微调的应用场景|G.c
+apcoilfp18kn26bm|181.RAG检索优化与实践指南|G.a
+wwd3ecgwtrqaflvn|180.深度解析Agent两大认知框架|H.a
+dsp6658yxgmvw5r0|179.AI大模型微调|D.a
+gpeozqvpchgnwt76|178.AI Agent 智能体|H.a
+bf4c7249vgr3sce8|177.深度解析RAG与模型微调|x.d|与「182.RAG和微调的应用场景」重复
+sa2ifbnci5hcb5vh|176.RAG检索增强生成|G.a
+pz9707onngiq5383|175.大模型应用架构解析|L.c
+thpwngktosyu2hog|174.10分钟拆解大语言模型黑箱|A.c
+ksll5vwg7g546zl6|MCP企业级开发实战训练营|H.p
+gemfwc6oikgigbox|Day1: MCP核心架构与快速实战|H.p
+qqe3hqvwm5hxlgnd|Day2: MCP企业级项目开发实践|H.p
+lkzouz4hz1ow3e51|Claude Code从入门到精通（旧版）|x.o|已被新版「Claude Code 实战从入门到精通」取代
+obvvw1b19ozh67u8|166.Claude Code快速入门与配置|x.o|旧版，功能与配置已大幅变化
+sqmpy8fahoyuxg7f|167.Claude Code官方最佳实践|x.o|旧版，看新版
+vi505wg57frvcxbi|168.Claude Code企业级应用实战|x.o|旧版，看新版
+gncqcpsbaly10oud|Cursor从入门到精通实战|I.p
+cispfgz8drlla98q|163.Cursor快速入门与配置|I.p.v
+ix7r5x81sh4zsf1t|164.Cursor高阶技巧使用|I.p.v
+ye7yv4wgk49bya33|165.Cursor提效应用场景实战|I.p
+rlxq4pcdttz369rl|01.MCP基础概念与快速入门|H.c|MCP 入门第一篇
+rpfrihzx52vqbw5h|02.MCP服务端开发与多客户端调用|H.p
+bc4ir1tbwb5y1nmk|03.MCP开发进阶核心技巧与应用实战|H.p
+nlgobq7c5yz0s3po|04.基于FastMCP框架开发智能问答应用|H.p
+fsadpcbwcbqm3pmv|05.MCP模块化开发最佳实践|H.p
+kdxdgxmbgb1xnhny|06.企业级MCP集成方案与应用实践|H.p
+gx8wsio9lg0c04ip|159.Dify开发Markdown转Word插件|N.a|了解 Dify 插件机制
+rnv0ec7csytfrt2a|158.Dify实现合同智能审查工作流|N.p|业务案例
+ydmw4xfgl6m628gc|157.Dify实现英语作文智能批改工作流|N.p|业务案例
+dfmd2921fvkp9vw5|156.Dify视频转文字会议纪要|N.p|业务案例
+aiyw0hvkzthqnm7e|155.Dify整合DeepSeek调用MCP推送新闻到企微|N.p|业务案例
+nu8u3622l04lmee3|154.Dify根据API文档生成接口代码|N.p|业务案例
+vy2dbwvucguptcvv|153.Dify搭建股票价格趋势智能体|x.d|与 223 股票分析系统重复
+mylgv0wk7emeyxbi|152.Dify实现业务单据自动核对|N.p|业务案例
+nf967ptx8zenqr1e|151.Dify基于视觉模型实现多票据识别|N.p|业务案例
+nmnvrxuz19fd18b3|150.Dify搭建历史故事语音播报工作流|N.p|业务案例
+xx6ylixcp3eom3w9|149.Dify搭建发票识别机器人|N.p|业务案例
+saegorp4pffhu1n2|148.Dify打造自媒体运营专家工作流|N.p|业务案例
+aq1qlv37kgzznpfh|147.Dify搭建专业简历美化助手|N.p|业务案例
+hciegw3wgq6fghru|146.Dify一键获取热榜文章内容|N.p|业务案例
+lzkri1i9kw6b8apb|145.Dify打造小红书爆改工作流|N.p|业务案例
+zagcc0l4mvokx8l6|144.Dify一键生成朋友圈图文|N.p|业务案例
+niz3bhvchi6yds9v|143.Dify基于Echarts插件打造可视化报表|N.p|业务案例
+okklz93vpsy6tpfy|142.Dify整合Ollama访问本地大模型|N.p
+qh0m9a1c841alnio|141.LLaMA Factory模型部署和接口调用|M.p
+iw73sno039t81nb4|140.LLaMA Factory模型训练跟踪和监测|M.p
+zpfbmotkly57mls4|139.LLaMA Factory基于FSDP训练模型|M.p
+qd9sbxov12bspt1h|138.LLaMA Factory基于DeepSpeed加速训练模型|M.p
+yv1bb8n50cflsfdy|137.LLaMA Factory基于DDP并行训练模型|M.p
+gt6rzu651nx61k8z|136.LLaMA Factory模型评估|M.p
+wr1zot9lpll6ksez|135.LLaMA Factory模型量化|M.p
+gbhgtyw0lhihm8s7|134.LLaMA Factory模型合并和推理|M.p
+gf3s7ec9lk65ty84|133.LLaMA Factory基于Lora微调模型|M.p
+gzwy9kx4f6uufxn9|132.LLaMA Factory模型训练快速入门|M.p|微调实操推荐从这里开始
+svkz3mbq0atopdi6|131.Dify借助插件打造PPT生成工作流|N.p|业务案例
+kzs9gwrsoatpqhvs|130.Dify集成MCP服务实现文案创作|N.p
+rhsca9ogwzrst6vf|129.Dify基于工作流搭建社媒分析助手|N.p|业务案例
+ol00t0sqf3umf8d2|128.Dify基于RAG知识库搭建智能客服|N.p
+guvgtf23gtb9lgmz|127.Dify基于ChatFlow搭建文章理解助手|N.p|业务案例
+vsqklgvzpx4qvv3i|126.Dify搭建金融投资分析智能体|N.p|业务案例
+kad6go1gmzq0li68|125.Dify搭建个人在线旅游助手|N.p|业务案例
+pmvhey1zb30901g5|124.Dify搭建AI图片生成应用|N.p|业务案例
+tc3zqh5xh3wg8rlp|123.Dify私有化部署与快速入门|N.p|Dify 入门第一篇
+do5rqhsk6h4dbggl|122.XTuner模型转换和推理|M.p
+zqp9q0hrcg9wbkbd|121.XTuner模型训练框架快速入门|M.p
+fa1zay1rncltoecw|120.Swift多模态模型训练|M.p
+iwsvu1sgy188n08i|119.基于Swift框进行量化训练|M.p
+fule6agwhgavesyr|118.Swift模型训练框架快速入门|M.p
+kqgr8ny3fnoegzgz|117.基于FSDP实现完全分片数据并行训练|E.p
+digyl6bsfl93xl3e|116.基于魔搭平台进行DDP分布式训练|E.p
+tinp6t8did1wq01v|115.基于DeepSpeed加速大模型训练|E.p
+pgk08qk07gy5dns9|114.基于QLoRA微调LLaMA|D.p
+qb2at410ncn7knld|113.QLoRA量化微调快速入门|D.p
+opyvy42tha3fhiic|112.基于Bitsandbytes量化模型|F.p
+frdos0ugikslpg6h|111.基于TIES合并微调模型|D.a|模型合并
+dbwzg7sugs5gtok2|110.基于IA3训练Seq2Seq模型|D.a
+sqnyt8dqae9mksud|109.基于LoRA训练图像分类模型|J.p
+osougoyx5fvfy60g|108.基于P-Tuning微调模型|x.o|P-Tuning 已基本被 LoRA 系方法取代
+du4sra2rk0tc5zzp|107.Stable Diffusion模型微调|J.p|图像生成方向
+bgy4rtod5e5cmk4b|106.PEFT定制化LoRA模型配置|D.p
+opy5h56r7kabfy45|105.PEFT消费级设备训练模型|D.p
+ftnl5n22qba1dezw|104.基于Coze空间完美平替Manus|x.o|Manus 热点时期文章，已过时
+uksn6cpxgbmhfnqh|103.HuggingFace 模型发布与格式转换|M.p
+nwrmpxtc6pr5bgs9|102.PEFT参数高效微调|D.c
+ullq2givmknaywc6|101.基于Accelerate进行分布式训练|E.p
+cfp4xepag4n9g0t5|100.基于PyTorch微调T5模型|x.o|T5 编解码模型已不是主流，改看 Decoder-only 模型微调
+qg7nhyktg846bgn1|99.Transformers微调预训练模型|M.p
+meavmmwusmgy4h6o|98.Transformers多模态数据预处理|M.p
+nwsdph94otry7cvb|97.Transformers自动化加载训练实例|M.p
+wc46xaahm7s9159b|96.Transformers多模态流水线任务|M.p
+hmu80z74k2g7u3v5|95.基于TensorFlow训练和评估模型|x.o|大模型生态已基本转向 PyTorch
+nw8me5ug0i9tkg35|94.TensorFlow模型训练环境安装|x.o|大模型生态已基本转向 PyTorch
+xm9lk4fub8uawtlw|93.Transformers执行分类推理任务|M.p
+cmrop015vm4bpi3e|92.HF Transformers快速入门教程|M.c|HF 生态入门
+me0tq3z1dpykgzpe|91.Transformer主流大语言模型架构解析|C.c
+nhwglo5m6wyh14q7|90.大模型开发环境Conda和Jupyter使用|M.p
+pfqc5hufcxm6zs9g|89.DALL-E3图像提示工程最佳实践|x.o|DALL-E 3 已被新一代图像模型取代
+fgayhu3l1uw9pwhu|88.大模型提示词工程最佳实践|H.c
+vebhw1xl7gzwt933|86.OpenAI应用开发快速入门|A.p.v|注意 OpenAI 已推出新版 Responses API
+zg8galldagwfw0wv|87.GPT-4o多模态应用实战|x.o|GPT-4o 已是旧型号
+nb2tyht7geyrgqzb|85.AI大模型领域核心概念|A.c
+gybi8s6lihxolnd6|84.Coze结合RAG实现产品资料问答|N.p
+xkxtw8q3s1tepn0g|83.基于Coze开发网页数据采集助手|N.p|业务案例
+xosuint2nkt253ls|82.基于Coze开发电商售后客服|N.p|业务案例
+mogns7cpb0sp3650|81.Coze构建识别用户意图工作流|N.p|业务案例
+cthn83r4xpopbemk|80.Coze定制化开发股票分析插件|N.p|业务案例
+nt7kqggycqkm01z4|79.Coze工作流编写代码执行特定任务|N.p|业务案例
+gtpukm2kqlq18rot|78.SpringAI轻松构建MCP Client-Server架构|H.p|Java 方向的 MCP 实现
+ic6ain9yu266eh2a|77.Coze搭建搜索新闻工作流|N.p|业务案例
+ko3s6m132zik5nzb|76.Coze搭建客服陪练智能体|N.p|业务案例
+tbvpittw0dztlf8o|75.Coze搭建智能助教智能体|N.p|业务案例
+ve25dsfdes5rtq2f|74.Coze搭建数据质检智能体|N.p|业务案例
+maurwhaxlgct6c7k|73.Coze搭建情感陪聊智能体|N.p|业务案例
+pssyug8xen38wg1k|72.Coze搭建产品卖点提炼智能体|N.p|业务案例
+xdw0lgq0oele2gc2|71.Coze搭建爆款文案智能体|N.p|业务案例
+xc0arhmyxmulczy9|70.Coze搭建企业客服智能体|N.p|业务案例
+fmu0q2nqrmsw0ugo|69.Coze优化智能体交互体验|N.p|业务案例
+za3z67z42xtziuqx|68.Coze知识库和记忆|x.d|与「206.Coze知识库和记忆」同名重复
+ts0fnu85okwg3thk|67.Coze工作流与触发器|x.d|与「205.Coze工作流和触发器」重复
+gg6xik8o2y2inz2c|66.Coze插件使用|N.p|平台操作细节
+lhcun2x15podo28v|65.Coze智能体快速入门|N.p|Coze 入门第一篇
+hzfkw5z9h5v26023|64.基于LlamaIndex开发AI法律助手|M.p
+xpax6x2v546o4ina|63.基于Windsurf实现类Manus功能|x.o|Manus 热点时期文章，已过时
+mywdbnom79wgdz20|62.深度剖析Agent四大能力架构设计|H.c
+eg9kn0ufed37wgh9|61.揭秘Agent核心原理与企业级应用场景|H.a
+gt2nkqt25xgrikvo|60.基于DB-GPT开发金融财报分析助手|M.p
+lv72n5uehbdx73uc|59.RAG项目优化最佳实践|G.a
+my02kif0cvibkut6|58.基于LangGraph开发智能收集小助手|M.p
+xv5xrd84rakkb25s|57.LangGraph多代理协作|M.p
+bkh4xp6r2c6byd9s|56.LangGraph ReAct应用|M.p
+omdgzfr5gp8gcp8t|55.LangGraph检查点和Send机制|M.p
+kq7m2pzg3df5d0gq|54.LangGraph流式处理|M.p
+afb2a832r9nsheov|53.LangGraph子图可控性|M.p
+nd272e303g00rexv|52.LangGraph工作流人机交互|M.p
+uqdxuiw8zt42xf9s|51.OpenManus整合QwQ-32B光速打脸Manus|x.o|热点文章，模型与项目均已过时
+lx6q0337hcelc6im|50.LangGraph持久化管理|M.p
+xgvxqva8u9gcuilb|49.LangGraph核心组件|M.p
+vis9ropix2gm9eg0|48.LangChain多类型文本分割|M.p.v|文本分割概念仍适用
+uog779gz1d3tfvw1|47.LangChain多数据源集成|x.o|LangChain 0.x API，1.0 后写法已变
+rd191qhogxsffaek|46.阿里QwQ-32B性能比肩DeepSeek满血版|x.o|模型发布新闻，已过时
+sw96l73y4t7l3016|45.LangChain基于SQL实现数据分析问答|x.o|LangChain 0.x API，1.0 后写法已变
+gugfdw679w2uvg7g|44.LangChain整合维基百科实现网页问答|x.o|LangChain 0.x API，1.0 后写法已变
+ptgo19fsgzv1ki6y|43.LangChain实现多文档问答|x.o|LangChain 0.x API，1.0 后写法已变
+cb0q40rvllig0gtw|42.LangChain自定义RAG加载器|x.o|LangChain 0.x API，1.0 后写法已变
+ki7pvoozq0xtiz4k|41.Manus爆火带来的技术思考|x.o|热点评论，已过时
+sl02g37a4kkmxh5l|40.LangChain自定义会话管理和Retriever|x.o|LangChain 0.x API，1.0 后写法已变
+apef4zcbmf6r149r|39.LangChain自定义Callback组件|x.o|LangChain 0.x API，1.0 后写法已变
+zpmw4ckgtgwoicg2|38.LangChain高效检索器最佳实践|x.o|LangChain 0.x API，1.0 后写法已变
+hiwagz4ut5boy1dw|37.LangChain向量管理高阶指南|x.o|LangChain 0.x API，1.0 后写法已变
+cg06i3ruwb0gmzyk|35.DeepSeek开源Day5：3FS&smallpond技术详解|E.a|训练基础设施，偏深入
+aqnmbf3tf7xibqxg|34.DeepSeek开源Day4：DualPipe&EPLB技术详解|E.a|流水线并行与 MoE 负载均衡
+arvp95rxlp4io0ki|36.DeepSeek背后核心技术揭秘|C.c|MLA、MoE、GRPO 等
+bpk116qu8izb8mia|33.DeepSeek开源Day3：DeepGEMM技术详解|F.a
+gf5zaqwz2qx2brml|32.DeepSeek开源Day2：DeepEP技术详解|E.a
+cwrptd3u8qseknlw|31.DeepSeek开源Day1：FlashMLA技术详解|C.a
+whpt02m19hmbodv5|30.DeepSeek结合LlamaIndex构建RAG应用|G.p
+lc7068hkaz3f4gfs|29.LlamaIndex大模型应用开发快速入门|x.d|与「191.LlamaIndex框架入门与实践指南」重复
+tm7geexuhe563hqg|28.DeepSeek结合AutoGen构建多Agent应用|x.o|AutoGen 已进入维护模式，微软转向 Agent Framework
+mtrp60obr10bq7fn|27.AutoGen智能体开发平台快速入门|x.o|AutoGen 已进入维护模式，微软转向 Agent Framework
+uyyeq87q02gnrq4g|26.DeepSeek R1模型Lora微调训练|D.p
+lt3vq78uofm3mm6q|25.DeepSeek R1打造本地化RAG知识库|G.p
+ofb2c8aqg7199kx0|24.基于DeepSeek R1搭建企业级知识库|G.p
+vvlyc5ddpr77z2uc|23.Coze接入DeepSeek R1保姆教程|x.o|平台接入教程，已过时
+qrs4fcbloi3t4769|22.基于LM Studio私有化部署Llama3和API调用|x.o|Llama 3 已是旧模型
+vrcgtr6w8zuf0pon|21.DeepSeek-R1 模型本地部署保姆教程|F.p.v|部署流程通用，模型可换新版
+qmg2vccgi2px9oq2|20.如何使用AutoDL高效训练大模型|M.p
+rsg0n8p8t00455gh|19.ModelScope模型训练平台配置与使用|M.p
+hi7q30wqo9qpt5ne|18.如何基于GPT定制化微调训练|x.o|旧版 OpenAI 微调接口与模型
+gfwaa6r8xhnrcelx|17.如何针对超长文本进行微调训练|x.d|与面试题「6.超长文本微调」重复
+gmyn0l71a7g9zue5|16.如何微调BERT模型进行文本分类|x.d|与「260.如何微调BERT模型进行文本分类」同名重复
+gqe09r6zwwpk4tyh|15.大模型时代为什么需要向量数据库?|G.a
+xrxk7ydqinuept5u|14.HuggingFace 核心组件及应用实战|M.p
+ytahp7vsfhqy9ddl|13.如何基于Dify快速构建AI原生应用|N.p
+xbtqq4akfzph9h0f|12.LangGraph基于RAG构建智能客服应用|M.p
+lq6y4iytxtk7seig|11.LangGraph快速构建Agent工作流应用|M.p
+klnvvrvv9ymvklc3|10.LangGraph快速入门与底层原理剖析|M.c|LangGraph 入门第一篇
+vaay48ng372x9svg|9.LangChain基于RAG实现文档问答|x.o|LangChain 0.x API，1.0 后写法已变
+gn28i9dh4rqmxl4g|8.LangChain开发Agent智能体|x.o|1.0 后 Agent 改用 create_agent，旧写法已弃用
+yam8ia9h2zox8plw|7.LangChain自定义工具调用|x.o|LangChain 0.x API，1.0 后写法已变
+gdio7fysi5qnrye1|6.LangChain多模态输入与自定义输出|x.o|LangChain 0.x API，1.0 后写法已变
+ar6wnosx1eagh04u|5.LangChain消息管理与聊天历史存储|x.o|LangChain 0.x API，1.0 后写法已变
+zzirgg5ikiqqan70|4.LangChain服务部署与链路监控|x.o|LangServe 等方案已不再主推
+zlochy9kvuginl44|3.LangChain工作流编排|x.o|LCEL 旧式编排，复杂流程改用 LangGraph
+drh5k0tbr82364vg|2.LangChain提示词工程应用实践|x.o|LangChain 0.x API，1.0 后写法已变
+pbug4owhn8pb6m2o|1.LangChain快速入门与底层原理|x.o|旧版，改看「277.LangChain 1.0应该要怎么用」
+asgpo5yesx0uioag|AI大模型直播课|A.p|直播回放合集，按需看
+wilqli1binm9887u|阿里为什么要禁用Java内置线程池？|P.a
+ag7rt2n2fnnkzc30|如何优雅的保存mysql数据变更历史？|P.a
+glgwqss6csb7dkf9|《牛逼到爆！秒杀几万行Excel批量导入的终极绝技！》|P.a
+skypn0dwnv04lmk2|Java架构师指南：使用Redis和Lua打造无超卖的高并发秒杀系统|P.a
+tdkzq9cnap0m760p|Java高手进阶：基因算法与倒排索引在MySQL分库分表中的应用|P.a
+xwypdtvn2g6rkgts|非常牛逼，200毫秒干到10毫秒，利用MySQL JSON特性优化千万级订单表|P.a
+weyffeg43qczcfg8|结合SpringBoot的MockMVC轻松实现Web单元测试|P.a
+udsr3aaz2z3stfb1|阿里是如何设计RESTful风格API|P.a
+hdbew9mkxot9pa20|MyBatis批量插入几千条数据，请慎用foreach|P.a
+gznabomap7n06682|利用MySQL8新特性实现无限层级依赖SQL查询|P.a
+dkicz2082pxdwmyd|不要在项目中使用分布式事务中间件|P.a
+hqah56z1i80eb4t4|如何实现15分钟未支付自动取消订单|P.a
+de4sh175fxioa1dh|抖音直播演示稿|P.a
+huhx1ieznragwl5g|文件上传相关场景|P.a
+pek6yogbg4u7okv0|Redis支持事务吗？|P.a
+gfehf3fwn6uqrtyy|高并发应用线程爆炸如何有效规避|P.a
+ygu9n7gbwctqhsut|SpringBoot 最常用的50个注解|P.a
+pe9y9suqi7g803xs|02_Sharding-Sphere 读写分离 分布式事务原理 及 实战|P.a
+yy2l4ycdfesdngdk|如何实现订单超时未处理|P.a
+ckaoglm1410ru8z3|高并发无忧！Spring Retry 与 Redis Watch 打造坚不可摧的乐观锁方案|P.a
+axvugy0ukg4gaqsg|大厂场景题汇总|P.a
+vpd93p4kgoqtdlbl|应用间通信安全方案——接口签名|P.a
+yxmyzoqfrnx5ig0a|日均30万订单如何读写分离与分库分表|P.a
+pe2kcxag3qd2m5w8|你真的了解Java泛型吗？|P.a
+vffze888lil3sqgl|从日志分析到文件处理，Linux管道命令如何改变你的效率|P.a
+oonlvy38mteogmrs|京东双十一十万级商品接口15则优化方案|P.a
+ma6mg2fo6p5omeig|某读书会Redis 大Key引发的线上事故分析总结|P.a
+pyo63dkfnczcqkg5|MySQL8新特性CTE解决树形迭代问题|P.a
+fph831iegggklks5|后端接口优化的8大策略|P.a
+uu5ukoygifvg901g|Redis 6硬盘级加速：多级磁盘一致性新方案！|P.a
+wcmxppyaztm7mb8l|我为什么不建议使用Docker部署MySQL数据库？|P.a
+ax10a906guxme9nh|商品秒杀巧用Redis与Lua预防库存超卖~|P.a
+fh5euvrfvvv5z651|Prometheus全面监控MySQL服务|P.a
+fikz1plmh8gdeb5n|Java-反射详细讲解|P.a
+kvaylirzf6p2725d|Spring Data JPA访问MySQL数据|P.a
+pykvh3ffymo3ghpb|Springboot相比Spring|P.a
+lwennyszhc65pfrd|数据库与缓存的一致性|P.a
+wbbvxa2y14qe4nag|重构代码有哪些注意事项|P.a
+xachlgzyyg2r32sh|4.连接的底层是什么|P.a
+dqec4derrv6vpg7m|Docker-Compose构建基本可用容器集群|P.a
+peazspypgpmg2beh|依赖注入|P.a
+crg75y2mwrxvex2x|1.顺丰Java一面|P.a
+bfbbi22z9yogtqgp|Prometheus+grafana+springboot 搭建监控平台|P.a
+fewopn70fpganieg|超实用高并发优化技巧：同步转异步|P.a
+hqcgas5i9sn8qkep|2.lua脚本的作用，优缺点？|P.a
+teb2rf1zpzqz5ran|3.redis连接用的那个？不同连接之间的区别？|P.a
+nov5xrx857ki62bw|MySQL8新特性优化父子层级关系数据CTE查询|P.a
+cqpyxhtpq3yfbobg|索引失效|P.a
+zedzezwx8y8wbvam|为什么微服务架构需要聚合|P.a
+kntmehqtbpzgilpz|如何快速判断几十亿个数中是否存在某个数|P.a
+mgxupg9107trcq3t|索引的分类|P.a
+ch15inta1brw8y3m|如何实现无状态的JWT令牌自动续约|P.a
+as6tg55xes098npo|MySQL关键特性索引下推ICP|P.a
+zs2yd5a0vsh1fc03|什么是索引|P.a
+trq0sgn1xsf2y80f|1.ConcurrentHashMap为什么是线程安全的？|P.a
+lwkpcqrecvz53kmq|京东到家应用架构设计分享|P.a
+taq8dmn7nwo4agl9|Spring框架用到的设计模式|P.a
+hq6kieui6q96dpdh|组合、继承、代理的区别|P.a
+epfzxkygvg5nppvr|arraylist和linklist原理，区别|P.a
+fl79xbbdtq1m545g|Spring Boot接入OpenTelemetry可观测零侵入|P.a
+os9hfimg96fmp93z|Java实现多线程的方式，手写|P.a
+cg1retwys9gt2bng|索引选择与失效的场景|P.a
+pgig1gk97q9f7ar8|多租户多数据源灵活路由方案|P.a
+lupb5kpsosncubdc|SAAS多租户数据隔离解决方案|P.a
+acyxq4qt14766ngn|SAAS系统大规模Nginx ingress如何优化|P.a
+ntru4adh4oztkwgz|10大MySQL高可用方案对比|P.a
+fhuxcn8qu5g98cy9|Spring状态机最佳实践|P.a
+aa8qkxggxocw50x8|Java会因容器技术盛行而没落吗|P.a
+avyhhu7fchiupy46|基于bitmap百亿级数据迁移的数据一致方案|P.a
+qei98h4r8ar0i9on|小米在Flink实时数仓的优化方案|P.a
+fsco6e4pyvm4uio8|本地消息表如何保障分布式最终一致性的|P.a
+daazz1gk7265huqw|如何保证RocketMQ消息与事务一致性|P.a
+rhz4ttrei2ik3gw1|Redis发布订阅机制实现原理|P.a
+cloduv51syn0bdqp|命令查询职责分离模式CQRS|P.a
+cwr6xybqf1n5o78h|电商高并发活动缓存访问倾斜问题及处理|P.a
+ggtxz1u0gq08nf6c|高并发微服务架构为何都在放弃 Zookeeper|P.a
+ilktu3f8hdf9b771|调式、热部署背后的Java Agent探针技术|P.a
+urmi958malve2g8w|架构必备的经典解耦策略|P.a
+we5nh33wylipnuif|Redis复杂数据像Mybatis操作|P.a
+ne0qbe1nd3d3qh39|CDC  可以替代Canal的数据同步方案|P.a
+oeh1fab5innommcs|超实用Web服务端推送技术SSE|P.a
+qugyp33yak7whz3i|如何设计日千万级别以上的订单系统|P.a
+bnx19ggldzsdd53o|非常实用SpringBoot实战自定义注解 + AOP 实现共性需求|P.a
+pvgkkn5snlgn2tks|RPC和REST两种通信方式分布式架构中该怎么选|P.a
+rw63vmqmg42s0aw0|代码合并到底用Git Rebase 还是 Git Merge|P.a
+svtn9r0i6kl417qr|如何通过架构分离抗住单页10万QPS的超高并发访问|P.a
+bppholkiib9k5n2m|架构案例引发的思考数据变更时选择Push还是Pull|P.a
+marvm9pwdsuvc7sg|轻松上手WebSocket及时通信|P.a
+eawhs35eqsf0aekg|SpringBoot整合Caffeine、Redisson多级缓存架构实战|P.a
+zyh2utvppelqi541|如何实现订单超时未处理（二）|P.a
+mmre6zwzyeowxl8d|有了虚拟线程，线程池还有必要存在吗|P.a
+ey4lt3bpdevw2lxz|结合SpringBoot多线程应用最佳实践|P.a
+qpmdvo9x4tzu5yfk|76.12306超高并发如何保证数据一致性|Q.a
+renrddgsg1gge21l|75.大厂多租户系统架构设计|Q.a
+wyymvhlgaxhhnsu3|74.小红书在线场景Pulsar技术实践|Q.a
+zme7dpz71hmak6nb|73.陌陌Service Mesh落地实践|Q.a
+zbh6zbgbbwi8628q|72.得物自研API网关最佳实践|Q.a
+iwurlag20gn9ph1v|71.亿级IM消息系统设计|Q.a
+df0wxru97o200y8n|70.携程机票业务中台化落地实践|Q.a
+eb77uzbucv4nc2v6|69.得物商家下载中心优化实践|Q.a
+aeorevqyg48x58el|68.大厂全链路灰度发布最佳实践|Q.a
+ynfwuuegkm0om8lx|67.京东物流DDD微服务架构落地实践|Q.a
+osnxlp9suyqbiqdl|66.携程亿级网关架构设计|Q.a
+wvk4i4zr3pekez3b|65.哈啰出行分布式消息治理最佳实践|Q.a
+xutk8thgg3ps3f1n|64.微博亿级Feed流系统设计|Q.a
+mtcgdgxgzwmb3ge3|63.小红书性能优化平台落地实践|Q.a
+ptd4gwfindu9os2c|62.亿级用户中心的设计与实践|Q.a
+uaxgnoev98uweb09|61.大厂动态线程池落地与实践|Q.a
+hirth6qp1g18rqr3|60.互联网架构，如何进行容量设计？|Q.a
+ibezv957nskeqxws|59.美团接口被刷十万QPS，怎么防?|Q.a
+fne48go8493d8x6z|58.字节10万级QPS高并发优惠券系统实践|Q.a
+yeblfao43qm8cz1f|57.如何优雅实现扫码登录功能|Q.a
+fnuohphwqinbwi1v|56.电商微服务业务架构拆分技巧|Q.a
+uimorq7013aa3pzr|55.互联网大厂异地多活架构方案|Q.a
+wrg0zap6zqdq9qny|54.大厂线上接口排障常用技巧|Q.a
+xphqt83uoruff1xw|53.闲鱼优惠中台架构演进之路|Q.a
+lon7bshh8nuq7qme|52.微信百亿级红包技术架构|Q.a
+gpxn0f263bpvg4g1|51.阿里内部性能优化方法论|Q.a
+lida7ygnlcrxx54i|50.如何设计一个SSO单点登录系统|Q.a
+wfkk1gq07l7qr1wi|49.互联网大厂流量削峰实践|Q.a
+wfaa0ofdi9kp5a1x|48.如何设计一个分布式链路跟踪系统|Q.a
+te6zgcyih3izhhbq|47.互联网大厂购物车系统设计|Q.a
+poderziwswvy09ki|46.如何设计亿级用户网约车系统|Q.a
+seqkwf4yuuh3fg2g|45.如何实现百亿级短URL生成器|Q.a
+gw31g0eff0z7fmss|44.如何设计亿级用户短视频系统|Q.a
+rhqs6cpbyy7xd4h0|43.如何设计一个支持海量存储的网盘系统|Q.a
+gzzvepdo46m7meri|42.阿里全链路压测方案最佳实践|Q.a
+ztynnphev1c1m7mb|41.京东电商大促高可用保障实践|Q.a
+dglomcobg18p70g7|40.咸鱼交易业务状态机方案实践|Q.a
+xvrclvff0kp2oe8a|39.携程门票秒杀系统优化实践|Q.a
+ocnec1alfqvusli9|38.喜马拉雅自研网关技术实践|Q.a
+ebudxczvo8eux36x|37.携程亿级高并发架构改造实践|Q.a
+txb1c08a4fohm0nc|36.喜马拉雅亿级推送系统实践|Q.a
+gfugl99h1t7lm81k|35.互联网大厂高并发限流解决方案|Q.a
+xyx36ha4d8vcbqia|34.石墨文档百万级长连接技术实践|Q.a
+gipamus09226fgcp|33.B站亿级API网关重构之路|Q.a
+cygum6qhrogqny1y|32.美团即时物流架构落地实践|Q.a
+rv8l5pdm202npy2c|31.美团内部性能优化实践|Q.a
+cgulucy3dpnevunk|30.Effective Java 最佳应用实践|Q.a
+krm1rdzpkmtf9x91|29.阿里内部设计模式最佳实践|Q.a
+gykhcv3g7e2ko4mk|28.阿里项目依赖冲突治理之道|Q.a
+rhmaiwg1iba3vcc7|27.互联网大厂分布式ID解决方案|Q.a
+dbc8smoogyq7ig49|26.一节课讲透分布式session一致性问题|Q.a
+xe5x9knwora9h8kw|25.如何设计一个微博系统|Q.a
+vgcwmegc50pn903p|24.微服务架构常用十种设计模式|Q.a
+ndtdwaaprdh9758l|23.阿里内部MySQL索引优化最佳实践|Q.a
+cn158rxxb71ngtib|22.京东内部Redis性能优化最佳实践|Q.a
+lk58e2ycwiiui2gh|21.一口气讲完OAuth2四种授权模式|Q.a
+ofw84w8eggvlky10|20.充值接口被薅羊毛，老板让我做接口加密|Q.a
+byefblgbztfvguhb|19.Restful API设计最佳实践|Q.a
+nzhtlzgfwpa9awuq|18.一次搞定MySQL分库分表|Q.a
+xv5ovy4snzwk52rw|17.你必须知道的Redis缓存七大陷阱|Q.a
+gzv4h6lsufmw16pi|16.线上问题如何快速排查|Q.a
+1ef0736ce959dd977a61e591a68ac9ed|15.从操作系统底层彻底理解Java IO演进之路|Q.a
+22c27d3a551656d4e3ea01b06ffdca61|14.巧用Java Stream Gather利器，让你的效率翻个倍|Q.a
+kqh05p70k9slit3a|13.这次彻底讲透JVM垃圾回收算法底层原理|Q.a
+silufg36rchsacb1|12.从一条SQL的系统异常彻底理解死锁问题|Q.a
+iz54hgzbw1vrl23u|11.从0到1手写实现一个分布式RPC框架|Q.a
+gppvwmhf3h5izw0k|10.京东内部缓存应用最佳实践|Q.a
+iml0gm470smhtrnd|9.阿里内部代码重构最佳实践|Q.a
+imfq453xna8arkxn|8.放弃RR选择RC，通过for update理解MySQL锁定机制|Q.a
+vm3rnrp2pghavtfo|7.不要在项目中使用分布式事务中间件|Q.a
+qlcqy21g5oa6t3cy|6.MyBatis批量插入几千条数据，请慎用foreach|Q.a
+kooaq7ffqmaq9yb6|5.如何实现15分钟未支付自动取消订单|Q.a
+vu5gmnx724egmawe|4.如何确保消息的顺序性|Q.a
+ooz6vb6x4nv8aukc|3.如何解决消息堆问积的题|Q.a
+vx6xqavrz1hpb2w2|2.消息队列的消费幂等性如何保证|Q.a
+xgiync83q36izdz8|1.为什么要使用消息队列呢|Q.a`;
+
+const items = RAW.split("\n").map(l => {
+  const [slug, title, code, note] = l.split("|");
+  const [m, t, v] = code.split(".");
+  if (m === "x") return {slug, title, removed:true, reason:t, note: note || ""};
+  return {slug, title, mod:m, tag:t, ver:v==="v", note: note || ""};
+});
+const kept = items.filter(i => !i.removed), removed = items.filter(i => i.removed);
+const count = k => kept.filter(i => i.tag === k).length;
+document.getElementById("stats").innerHTML = [
+  [items.length,"文章总数"],[kept.length,"保留"],[count("c"),"核心必读"],
+  [removed.filter(i=>i.reason==="o").length,"移除·过时"],[removed.filter(i=>i.reason==="d").length,"移除·重复"]
+].map(([n,l]) => `<div class="stat"><b>${n}</b><span>${l}</span></div>`).join("") + '<div class="stat" id="readStat"></div>';
+
+let filter = "all", showRm = false, q = "", hideRead = false;
+// 已读记录：存在本浏览器的 localStorage，笔记页可以导出 / 导入
+const RKEY = "llm-kb-read";
+let read = {};
+try { read = JSON.parse(localStorage.getItem(RKEY)) || {}; } catch {}
+const saveRead = () => { try { localStorage.setItem(RKEY, JSON.stringify(read)); } catch {} };
+function readStat(){
+  const n = kept.filter(i => read[i.slug]).length;
+  document.getElementById("readStat").innerHTML = `<b>${n}</b><span>已读（共 ${kept.length}）</span>`;
+}
+const esc = s => s.replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const order = {c:0,a:1,p:2};
+function row(i){
+  const tags = i.removed ? `<span class="tag t-${i.reason}">${TAGS[i.reason]}</span>`
+    : `<span class="tag t-${i.tag}">${TAGS[i.tag]}</span>${i.ver?'<span class="tag t-v">注意版本</span>':""}`;
+  return `<div class="it${read[i.slug]?" read":""}"><input type="checkbox" class="rd" data-slug="${i.slug}" title="标记已读"${read[i.slug]?" checked":""}><a href="${BASE+i.slug}" target="_blank" rel="noopener">${esc(i.title)}${i.note?`<span class="note">${esc(i.note)}</span>`:""}</a>${tags}</div>`;
+}
+function match(i){
+  if (hideRead && read[i.slug]) return false;
+  if (q && !(i.title + i.note).toLowerCase().includes(q)) return false;
+  if (i.removed) return true;
+  if (filter === "all") return true;
+  if (filter === "v") return i.ver;
+  return i.tag === filter;
+}
+function render(){
+  let html = "", nav = "";
+  for (const [k,[name,desc]] of Object.entries(MODS)) {
+    const list = kept.filter(i => i.mod === k && match(i)).sort((a,b) => order[a.tag]-order[b.tag]);
+    nav += `<a href="#m-${k}"><span>${name}</span><small>${list.length}</small></a>`;
+    if (!list.length) continue;
+    html += `<section id="m-${k}"><h2>${name}</h2><p class="d">${desc}</p><div class="list">${list.map(row).join("")}</div></section>`;
+  }
+  if (showRm) for (const [r,[name,desc]] of Object.entries(RM)) {
+    const list = removed.filter(i => i.reason === r && match(i));
+    nav += `<a href="#r-${r}"><span>已移除·${TAGS[r]}</span><small>${list.length}</small></a>`;
+    if (!list.length) continue;
+    html += `<section id="r-${r}" class="removed"><h2>已移除：${name}</h2><p class="d">${desc}</p><div class="list">${list.map(row).join("")}</div></section>`;
+  }
+  document.getElementById("out").innerHTML = html || '<div class="list"><div class="empty">没有匹配的文章</div></div>';
+  document.getElementById("nav").innerHTML = nav;
+}
+document.querySelectorAll(".f[data-t]").forEach(b => b.onclick = () => {
+  document.querySelectorAll(".f[data-t]").forEach(x => x.classList.remove("on"));
+  b.classList.add("on"); filter = b.dataset.t; render();
+});
+document.getElementById("showRm").onclick = e => { showRm = !showRm; e.target.classList.toggle("on", showRm); render(); };
+document.getElementById("q").oninput = e => { q = e.target.value.trim().toLowerCase(); render(); };
+document.getElementById("hideRead").onclick = e => { hideRead = !hideRead; e.target.classList.toggle("on", hideRead); render(); };
+document.getElementById("out").addEventListener("change", e => {
+  if (!e.target.classList.contains("rd")) return;
+  const s = e.target.dataset.slug;
+  if (e.target.checked) read[s] = new Date().toISOString().slice(0, 10); else delete read[s];
+  e.target.parentElement.classList.toggle("read", e.target.checked);
+  saveRead(); readStat();
+});
+render(); readStat();
+</script>
+</body>
+</html>
